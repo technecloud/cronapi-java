@@ -191,10 +191,10 @@
       <scope>test</scope>
     </dependency>
 
-    <dependency>
-      <groupId>io.cronapp</groupId>
+   <dependency>
+      <groupId>org.apache.olingo.jpa</groupId>
       <artifactId>odata-jpa-processor</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
+      <version>0.4.3-SNAPSHOT</version>
     </dependency>
 
     <dependency>
@@ -220,6 +220,18 @@
       <artifactId>aalto-xml</artifactId>
       <version>1.1.2-SNAPSHOT</version>
     </dependency>
+
+      <dependency>
+          <groupId>com.fasterxml</groupId>
+          <artifactId>aalto-xml</artifactId>
+          <version>1.1.2-SNAPSHOT</version>
+      </dependency>
+
+      <!--   <dependency>
+            <groupId>com.sap.olingo</groupId>
+            <artifactId>odata-jpa-processor</artifactId>
+            <version>0.2.9-SNAPSHOT</version>
+        </dependency> -->
 
   </dependencies>
   <distributionManagement>
