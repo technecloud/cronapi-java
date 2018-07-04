@@ -1,5 +1,6 @@
 {
   "name": "cronapp-xml2json",
+  "version": "0.0.1",
   "authors": [
     "Adir Lima <adir.santos@techne.com.br>"
   ],
