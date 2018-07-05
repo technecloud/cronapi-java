@@ -170,7 +170,8 @@
         return s;
       },
       escape: function(txt) {
-        return txt.replace(/[\\]/g, "\\\\")
+        return txt.trim()
+        .replace(/[\\]/g, "\\\\")
         .replace(/[\"]/g, '\\"')
         .replace(/[\n]/g, '\\n')
         .replace(/[\r]/g, '\\r');
