@@ -294,4 +294,68 @@
     return json;
   }
   
+  window.objectClone = function(obj, validFields) {
+    var copy;
+
+    if (null == obj || "object" != typeof obj) {
+      return obj;
+    }
+
+    if (obj instanceof Date) {
+      copy = new Date();
+      copy.setTime(obj.getTime());
+      return copy;
+    }
+
+    if (obj instanceof Array) {
+      copy = [];
+      
+      for (var i = 0, len = obj.length; i < len; i++) {
+          copy[i] = objectClone(obj[i], undefined);
+      }
+      
+      return copy;
+    }
+
+    var validFieldObject = function(attr, validFields) {
+      /*
+       *  Se não informou o dataSource, executa um clone comum de objeto.
+       */
+      if (!validFields) {
+        return true;
+      } else {
+        /*
+         *  Senão, analisa se o campo informado está na relação de validFields.
+         */
+        for (var field in validFields) {
+          if (attr == field) {
+            return true;
+          }
+        }
+        
+        return false;
+      }
+    }
+    
+    var isFunction = function(functionToCheck) {
+     return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+    }
+    
+    if (obj instanceof Object) {
+      copy = {};
+      
+      for (var attr in obj) {
+  			if ((obj.hasOwnProperty(attr)) && (obj[attr] != undefined) && 
+  			    (attr.substr(0,1) != '_') && (!isFunction(obj[attr])) && 
+  			    (validFieldObject(attr, validFields))) {
+  				copy[attr] = objectClone(obj[attr], validFields[attr]);
+  			}
+      }
+      
+      return copy;
+    }
+    
+    throw new Error("Unable to copy obj! Its type isn't supported.");
+  }
+  
 })();
