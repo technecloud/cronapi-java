@@ -1,10 +1,10 @@
 {
-  "name": "cronapp-xml2json",
+  "name": "cronapp-common-js",
   "version": "0.0.1",
   "authors": [
     "Adir Lima <adir.santos@techne.com.br>"
   ],
-  "description": "Converter between XML and JSON",
+  "description": "Cronapp Commons Functions",
   "main": "build/parser.js",
   "keywords": [
     "dom",
