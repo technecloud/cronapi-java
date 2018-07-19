@@ -5,7 +5,7 @@
     "Adir Lima <adir.santos@techne.com.br>"
   ],
   "description": "Cronapp Commons Functions",
-  "main": "build/parser.js",
+  "main": "dist/parser.js",
   "keywords": [
     "dom",
     "xml",

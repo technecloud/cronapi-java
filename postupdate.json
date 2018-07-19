@@ -1,0 +1,9 @@
+{
+  "includes": [
+    {
+      "file": "index.html",
+      "script": "plugins/cronapp-common-js/dist/parser.min.js",
+      "type": "script"
+    }
+  ]
+}
