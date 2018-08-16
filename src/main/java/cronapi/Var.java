@@ -8,19 +8,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import com.google.gson.*;
 import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.reflect.TypeToken;
 import cronapi.database.DataSource;
 import cronapi.i18n.Messages;
-import cronapi.json.JsonArrayWrapper;
 import cronapi.json.Operations;
 import cronapi.serialization.CronappModule;
 import cronapi.util.StorageService;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+
 import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
@@ -32,17 +30,8 @@ import java.math.BigInteger;
 import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Pattern;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 
 @JsonAdapter(VarSerializer.class)
 public class Var implements Comparable<Var>, JsonSerializable {
@@ -332,6 +321,12 @@ public class Var implements Comparable<Var>, JsonSerializable {
       return BigInteger.valueOf(getObjectAsLong());
     } else if (type == byte[].class) {
       return getObjectAsByteArray();
+    } else if (Collection.class.isAssignableFrom(type)) {
+      try {
+        return getObjectAsRawList(type);
+      } catch (Exception e) {
+        return getObjectAsRawList(LinkedList.class);
+      }
     } else {
       //create instance for Entity class
       if (Utils.isEntityClass(type) && _object != null
@@ -668,6 +663,26 @@ public class Var implements Comparable<Var>, JsonSerializable {
     }
 
     return myList;
+  }
+
+  public Collection getObjectAsRawList(Class clazz) {
+    List list = getObjectAsList();
+
+    Collection result;
+    try {
+      if (!clazz.isInterface()) {
+        result = (Collection) clazz.newInstance();
+      } else {
+        result = new LinkedList();
+      }
+    } catch (Exception e) {
+      result = new LinkedList();
+    }
+    for (Object o: list) {
+      result.add(Var.valueOf(o).getObject());
+    }
+
+    return result;
   }
 
   /**
