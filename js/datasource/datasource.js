@@ -2933,6 +2933,7 @@ angular.module('datasourcejs', [])
       return {
         restrict: 'A',
         scope: true,
+		priority: 9999999,
         link: function(scope, element, attrs) {
           scope.data = DatasetManager.datasets;
           if (scope.data[attrs.crnDatasource]) {
