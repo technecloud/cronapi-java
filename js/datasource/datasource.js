@@ -1126,6 +1126,64 @@ angular.module('datasourcejs', [])
           }
         };
 
+		this.buildURL = function(keyValues) {
+          var keyObj = this.getKeyValues(this.active);
+          var suffixPath = "";
+          if (this.isOData()) {
+            suffixPath = "(";
+          }
+          
+          var count = 0;
+          for (var key in keyObj) {
+            if (keyObj.hasOwnProperty(key)) {
+              if (this.isOData()) {
+                suffixPath += key + "='" + keyValues[count] + "'";
+              } else {
+                suffixPath += "/" + keyValues[count];
+              }
+            }
+            count++;
+          }
+          
+          if (this.isOData()) {
+            suffixPath += ")";
+          }
+
+          var url = this.entity;
+          if (this.entity.endsWith('/')) {
+            url = url.substring(0, url.length-1);
+          }
+
+          return url + suffixPath;
+        }
+        
+        this.findObj = function(keyObj, multiple, onSuccess, onError) {
+          var url = this.buildURL(keyObj);
+
+          this.$promise = $http({
+            method: "GET",
+            url: url,
+            headers: this.headers
+          }).success(function(rows, status, headers, config) {
+            if (this.isOData()) {
+              row = rows.d;
+              this.normalizeObject(row);
+            } else {
+              if (rows && rows.length > 0) {
+                row = rows[0];
+              }
+            }
+
+            if (onSuccess) {
+              onSuccess(row);
+            }
+          }.bind(this)).error(function(data, status, headers, config) {
+            if (onError) {
+              onError();
+            }
+          }.bind(this));
+        }
+		
         this.getColumn = function(index) {
           var returnValue = [];
           $.each(this.data, function(key, value) {
