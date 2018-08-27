@@ -1,4 +1,4 @@
-//v2.0.9
+//v2.0.10
 var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
 var TIME_PATTERN  = new RegExp("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)(?:\\.(\\d+)?)?S)?");
 var DEP_PATTERN  = new RegExp("\\{\\{(.*?)\\|raw\\}\\}");
@@ -227,7 +227,18 @@ angular.module('datasourcejs', [])
           this.handleAfterCallBack = function(callBackFunction) {
             if (callBackFunction) {
               try {
-                this.$scope.$eval(callBackFunction, {currentRow: this.active, datasource: this, index: this.cursor});
+
+                var contextVars = {
+                  'currentData': this.data,
+                  'datasource': this,
+                  'selectedIndex': this.cursor,
+                  'index': this.cursor,
+                  'selectedRow': this.active,
+                  'item': this.active,
+                  'selectedKeys': this.getKeyValues(this.active, true)
+                };
+
+                this.$scope.$eval(callBackFunction, contextVars);
               } catch (e) {
                 this.handleError(e);
               }
@@ -238,7 +249,17 @@ angular.module('datasourcejs', [])
             var isValid = true;
             if (callBackFunction) {
               try {
-                this.$scope.$eval(callBackFunction, {currentRow: this.active, datasource: this, index: this.cursor});
+                var contextVars = {
+                  'currentData': this.data,
+                  'datasource': this,
+                  'selectedIndex': this.cursor,
+                  'index': this.cursor,
+                  'selectedRow': this.active,
+                  'item': this.active,
+                  'selectedKeys': this.getKeyValues(this.active, true)
+                };
+
+                this.$scope.$eval(callBackFunction, contextVars);
               } catch (e) {
                 isValid = false;
                 this.handleError(e);
