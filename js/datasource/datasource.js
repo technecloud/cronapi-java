@@ -1,4 +1,4 @@
-//v2.0.10
+//v2.0.12
 var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
 var TIME_PATTERN  = new RegExp("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)(?:\\.(\\d+)?)?S)?");
 var DEP_PATTERN  = new RegExp("\\{\\{(.*?)\\|raw\\}\\}");
@@ -2150,6 +2150,80 @@ angular.module('datasourcejs', [])
           }
         }
 
+       var splitExpression = function(v) {
+
+          var pair = null;
+          var operator;
+
+          if (v.indexOf("@=") != -1) {
+            pair = v.trim().split("@=");
+            operator = "=";
+          } else if (v.indexOf("<=") != -1) {
+            pair = v.trim().split("<=");
+            operator = "<=";
+          } else if (v.indexOf(">=") != -1) {
+            pair = v.trim().split(">=");
+            operator = ">=";
+          } else if (v.indexOf(">") != -1) {
+            pair = v.trim().split(">");
+            operator = ">";
+          } else if (v.indexOf("<") != -1) {
+            pair = v.trim().split("<");
+            operator = "<";
+          } else {
+            pair = v.trim().split("=");
+            operator = "=";
+          }
+
+          var typeElement = typeof this.normalizeValue(pair[1], true);
+
+          if (this.isOData()) {
+           if (operator == "=" && typeElement == 'string') {
+             return "startswith(tolower("+pair[0]+"), "+pair[1].toLowerCase()+")";
+           }
+           else if (operator == "=") {
+             return pair[0] + " eq "+pair[1];
+           }
+           else if (operator == "!=") {
+             return pair[0] + " ne "+pair[1];
+           }
+           else if (operator == ">") {
+             return pair[0] + " gt {"+pair[1];
+           }
+           else if (operator == ">=") {
+             return pair[0] + " ge "+pair[1];
+           }
+           else if (operator == "<") {
+             return pair[0] + " lt "+pair[1];
+           }
+           else if (operator == "<=") {
+             return pair[0] + " le "+pair[1];
+           }
+         } else {
+           if (typeElement == 'string') {
+             return pair[0] + '@' + operator + '%'+pair[1]+'%';
+           } else {
+             return pair[0] + operator + pair[1];
+           }
+         }
+        }.bind(this);
+
+        var parseFilterExpression = function(expression) {
+          var filter = "";
+          if (expression) {
+            var parts = expression.split(";");
+            for (var i = 0; i < parts.length; i++) {
+              var data = splitExpression(parts[i]);
+              if (filter != "") {
+                filter += this.isOData()?" and ":";";
+              }
+              filter += data;
+            }
+          }
+
+          return filter;
+        }.bind(this);
+
         /**
          *  Fetch all data from the server
          */
@@ -2318,6 +2392,7 @@ angular.module('datasourcejs', [])
           var resourceURL = (window.hostApp || "") + this.entity + (props.path || this.lastFilterParsed || "");
 
           var filter = "";
+          var order = "";
           var cleanData = false;
           var canProceed = true;
           if (this.parameters && this.parameters.length > 0) {
@@ -2362,6 +2437,34 @@ angular.module('datasourcejs', [])
               callbacks.canceled();
             }
             return;
+          }
+
+          if (this.condition) {
+            var conditionFilter = parseFilterExpression(this.condition);
+            if (conditionFilter) {
+              if (filter != "") {
+                filter += this.isOData()?" and ":";";
+              }
+
+              filter += conditionFilter;
+            }
+          }
+
+          if (this.orderBy) {
+            var orders = this.orderBy.split(";");
+            for (var i=0;i<orders.length;i++) {
+              var orderField = orders[i];
+              if (orderField) {
+                if (order != "") {
+                  order += this.isOData()?",":";";
+                }
+                if (this.isOData()) {
+                  order += orderField.replace("|ASC", " asc").replace("|DESC", " desc");
+                } else {
+                  order += orderField;
+                }
+              }
+            }
           }
 
           //Check request, if  is dependentLazyPost, break old request
@@ -2421,11 +2524,33 @@ angular.module('datasourcejs', [])
             filter += paramFilter;
           }
 
+          var paramOrder = null;
+
+          if (this.isOData() && props.params.$orderby) {
+            paramOrder =  props.params.$orderby;
+          }
+
+          if (!this.isOData() && props.params.order) {
+            paramOrder =  props.params.order;
+          }
+
+          if (paramOrder) {
+            order = paramOrder;
+          }
+
           if (filter) {
             if (this.isOData()) {
               props.params.$filter = filter;
             } else {
               props.params.filter = filter;
+            }
+          }
+
+          if (order) {
+            if (this.isOData()) {
+              props.params.$orderby = order;
+            } else {
+              props.params.order = order;
             }
           }
 
@@ -2738,6 +2863,8 @@ angular.module('datasourcejs', [])
             dts.parametersExpression = props.parametersExpression;
             dts.checkRequired = props.checkRequired;
             dts.batchPost = props.batchPost;
+            dts.condition = props.condition;
+            dts.orderBy = props.orderBy;
 
             if (props.dependentLazyPost && props.dependentLazyPost.length > 0) {
               dts.dependentLazyPost = props.dependentLazyPost;
@@ -2847,7 +2974,7 @@ angular.module('datasourcejs', [])
               enabled: (attrs.hasOwnProperty('enabled')) ? (attrs.enabled === "true") : true,
               keys: attrs.keys,
               endpoint: attrs.endpoint,
-              lazy: (attrs.hasOwnProperty('lazy') && attrs.lazy === "") || attrs.lazy === "true",
+              lazy: attrs.lazy === "true",
               append: !attrs.hasOwnProperty('append') || attrs.append === "true",
               prepend: (attrs.hasOwnProperty('prepend') && attrs.prepend === "") || attrs.prepend === "true",
               watch: attrs.watch,
@@ -2857,7 +2984,7 @@ angular.module('datasourcejs', [])
               watchFilter: attrs.watchFilter,
               deleteMessage: attrs.deleteMessage || attrs.deleteMessage === "" ? attrs.deleteMessage : $translate.instant('General.RemoveData'),
               headers: attrs.headers,
-              autoPost: (attrs.hasOwnProperty('autoPost') && attrs.autoPost === "") || attrs.autoPost === "true",
+              autoPost: attrs.autoPost === "true",
               onError: attrs.onError,
               onAfterFill: attrs.onAfterFill,
               onBeforeCreate: attrs.onBeforeCreate,
@@ -2868,12 +2995,14 @@ angular.module('datasourcejs', [])
               onAfterDelete: attrs.onAfterDelete,
               defaultNotSpecifiedErrorMessage: $translate.instant('General.ErrorNotSpecified'),
               dependentBy: attrs.dependentBy,
-              dependentLazyPost: attrs.dependentLazyPost, //TRM
-              batchPost: attrs.batchpost === "true", //TRM
-              dependentLazyPostField: attrs.dependentLazyPostField, //TRM
+              dependentLazyPost: attrs.dependentLazyPost,
+              batchPost: attrs.batchpost === "true",
+              dependentLazyPostField: attrs.dependentLazyPostField,
               parameters: attrs.parameters,
               parametersExpression: $(element).attr('parameters'),
-              checkRequired: !attrs.hasOwnProperty('checkrequired') || attrs.checkrequired === "" || attrs.checkrequired === "true",
+              condition: attrs.condition,
+              orderBy: attrs.orderBy,
+              checkRequired: !attrs.hasOwnProperty('checkrequired') || attrs.checkrequired === "" || attrs.checkrequired === "true"
             }
 
             var firstLoad = {
