@@ -84,6 +84,9 @@ angular.module('datasourcejs', [])
           }
         }
 
+        this.destroy = function() {
+        }
+
         // Public methods
 
         /**
@@ -448,6 +451,7 @@ angular.module('datasourcejs', [])
                 obj.__parentId = eval(this.dependentLazyPost).active.__$id;
               }
               this.hasMemoryData = true;
+              this.notifyPendingChanges(this.hasMemoryData);
 
               if (onSuccess)
                 onSuccess(obj);
@@ -530,6 +534,7 @@ angular.module('datasourcejs', [])
           this.inserting = false;
           this.postDeleteData = null;
           this.hasMemoryData = false;
+          this.notifyPendingChanges(this.hasMemoryData);
 
           if (this.events.read) {
             this.callDataSourceEvents('read', this.data);
@@ -771,6 +776,7 @@ angular.module('datasourcejs', [])
               this.inserting = false;
               this.hasMemoryData = false;
               this.memoryData = null;
+              this.notifyPendingChanges(this.hasMemoryData);
             }
             this.postDeleteData = null;
             if (callback) {
@@ -976,6 +982,7 @@ angular.module('datasourcejs', [])
                     currentRow.__status = "updated";
                     currentRow.__original = lastActive;
                     this.hasMemoryData = true;
+                    this.notifyPendingChanges(this.hasMemoryData);
                     if (this.dependentLazyPost) {
                       currentRow.__parentId = eval(this.dependentLazyPost).active.__$id;
                     }
@@ -1010,6 +1017,16 @@ angular.module('datasourcejs', [])
           }
         };
 
+        this.notifyPendingChanges = function(value) {
+          console.log("notifyPendingChanges : " + value);
+          if (this.events.pendingchanges) {
+            this.callDataSourceEvents('pendingchanges', value);
+          }
+
+          if (this.dependentLazyPost) {
+            eval(this.dependentLazyPost).notifyPendingChanges(value);
+          }
+        }
 
         this.getDeletionURL = function(obj, forceOriginalKeys) {
           var keyObj = this.getKeyValues(obj.__original?obj.__original:obj, forceOriginalKeys);
@@ -1247,7 +1264,6 @@ angular.module('datasourcejs', [])
               callback();
             }
           } else {
-//            if (false) {
             if (this.entity.indexOf('cronapi') >= 0 || this.isOData()) {
               // Get an ajax promise
               var url = this.entity;
@@ -1414,6 +1430,7 @@ angular.module('datasourcejs', [])
                       deleted.__originalIdx = i;
                       this.postDeleteData.push(deleted);
                       this.hasMemoryData = true;
+                      this.notifyPendingChanges(this.hasMemoryData);
 
                       if (this.events.memorydelete) {
                         this.callDataSourceEvents('memorydelete', deleted);
@@ -1652,6 +1669,10 @@ angular.module('datasourcejs', [])
          *  Moves the cursor to the specified item
          */
         this.goTo = function(rowId) {
+          if (rowId == null || rowId == undefined) {
+            return;
+          }
+
           if (typeof rowId === 'object') {
             var dataKeys;
             if (this.data.length > 0)
@@ -2812,131 +2833,131 @@ angular.module('datasourcejs', [])
         this.datasets[dataset.name] = dataset;
       },
 
-          /**
-           * Initialize a new dataset
-           */
-          this.initDataset = function(props, scope) {
+      /**
+       * Initialize a new dataset
+       */
+      this.initDataset = function(props, scope) {
 
-            var endpoint = (props.endpoint) ? props.endpoint : "";
-            var dts = new DataSet(props.name, scope);
+        var endpoint = (props.endpoint) ? props.endpoint : "";
+        var dts = new DataSet(props.name, scope);
 
-            // Add this instance into the root scope
-            // This will expose the dataset name as a
-            // global variable
-            $rootScope[props.name] = dts;
-            window[props.name] = dts;
+        // Add this instance into the root scope
+        // This will expose the dataset name as a
+        // global variable
+        $rootScope[props.name] = dts;
+        window[props.name] = dts;
 
-            var defaultApiVersion = 1;
+        var defaultApiVersion = 1;
 
-            dts.entity = props.entity;
+        dts.entity = props.entity;
 
-            if (window.dataSourceMap && window.dataSourceMap[dts.entity]) {
-              dts.entity = window.dataSourceMap[dts.entity].serviceUrlODATA || window.dataSourceMap[dts.entity].serviceUrl;
+        if (window.dataSourceMap && window.dataSourceMap[dts.entity]) {
+          dts.entity = window.dataSourceMap[dts.entity].serviceUrlODATA || window.dataSourceMap[dts.entity].serviceUrl;
+        }
+
+        if (app && app.config && app.config.datasourceApiVersion) {
+          defaultApiVersion = app.config.datasourceApiVersion;
+        }
+
+        dts.apiVersion = props.apiVersion ? parseInt(props.apiVersion) : defaultApiVersion;
+        dts.keys = (props.keys && props.keys.length > 0) ? props.keys.split(",") : [];
+        dts.rowsPerPage = props.rowsPerPage ? props.rowsPerPage : 100; // Default 100 rows per page
+        dts.append = props.append;
+        dts.prepend = props.prepend;
+        dts.endpoint = props.endpoint;
+        dts.filterURL = props.filterURL;
+        dts.autoPost = props.autoPost;
+        dts.deleteMessage = props.deleteMessage;
+        dts.enabled = props.enabled;
+        dts.offset = (props.offset) ? props.offset : 0; // Default offset is 0
+        dts.onError = props.onError;
+        dts.defaultNotSpecifiedErrorMessage = props.defaultNotSpecifiedErrorMessage;
+        dts.onAfterFill = props.onAfterFill;
+        dts.onBeforeCreate = props.onBeforeCreate;
+        dts.onAfterCreate = props.onAfterCreate;
+        dts.onBeforeUpdate = props.onBeforeUpdate;
+        dts.onAfterUpdate = props.onAfterUpdate;
+        dts.onBeforeDelete = props.onBeforeDelete;
+        dts.onAfterDelete = props.onAfterDelete;
+        dts.dependentBy = props.dependentBy;
+        dts.parameters = props.parameters;
+        dts.parametersExpression = props.parametersExpression;
+        dts.checkRequired = props.checkRequired;
+        dts.batchPost = props.batchPost;
+        dts.condition = props.condition;
+        dts.orderBy = props.orderBy;
+
+        if (props.dependentLazyPost && props.dependentLazyPost.length > 0) {
+          dts.dependentLazyPost = props.dependentLazyPost;
+          eval(dts.dependentLazyPost).addDependentDatasource(dts);
+        }
+
+        dts.dependentLazyPostField = props.dependentLazyPostField; //TRM
+
+        // Check for headers
+        if (props.headers && props.headers.length > 0) {
+          dts.headers = {"X-From-DataSource": "true"};
+          var headers = props.headers.trim().split(";");
+          var header;
+          for (var i = 0; i < headers.length; i++) {
+            header = headers[i].split(":");
+            if (header.length === 2) {
+              dts.headers[header[0]] = header[1];
             }
+          }
+        }
 
-            if (app && app.config && app.config.datasourceApiVersion) {
-              defaultApiVersion = app.config.datasourceApiVersion;
-            }
+        this.storeDataset(dts);
+        dts.allowFetch = true;
 
-            dts.apiVersion = props.apiVersion ? parseInt(props.apiVersion) : defaultApiVersion;
-            dts.keys = (props.keys && props.keys.length > 0) ? props.keys.split(",") : [];
-            dts.rowsPerPage = props.rowsPerPage ? props.rowsPerPage : 100; // Default 100 rows per page
-            dts.append = props.append;
-            dts.prepend = props.prepend;
-            dts.endpoint = props.endpoint;
-            dts.filterURL = props.filterURL;
-            dts.autoPost = props.autoPost;
-            dts.deleteMessage = props.deleteMessage;
-            dts.enabled = props.enabled;
-            dts.offset = (props.offset) ? props.offset : 0; // Default offset is 0
-            dts.onError = props.onError;
-            dts.defaultNotSpecifiedErrorMessage = props.defaultNotSpecifiedErrorMessage;
-            dts.onAfterFill = props.onAfterFill;
-            dts.onBeforeCreate = props.onBeforeCreate;
-            dts.onAfterCreate = props.onAfterCreate;
-            dts.onBeforeUpdate = props.onBeforeUpdate;
-            dts.onAfterUpdate = props.onAfterUpdate;
-            dts.onBeforeDelete = props.onBeforeDelete;
-            dts.onAfterDelete = props.onAfterDelete;
-            dts.dependentBy = props.dependentBy;
-            dts.parameters = props.parameters;
-            dts.parametersExpression = props.parametersExpression;
-            dts.checkRequired = props.checkRequired;
-            dts.batchPost = props.batchPost;
-            dts.condition = props.condition;
-            dts.orderBy = props.orderBy;
+        if (dts.dependentBy && dts.dependentBy !== "" && dts.dependentBy.trim() !== "") {
+          dts.allowFetch = false;
 
-            if (props.dependentLazyPost && props.dependentLazyPost.length > 0) {
-              dts.dependentLazyPost = props.dependentLazyPost;
-              eval(dts.dependentLazyPost).addDependentDatasource(dts);
-            }
+          //if dependentBy was loaded, the filter in this ds not will be changed and the filter observer not will be called
+          var dependentBy = null;
+          try {
+            dependentBy = JSON.parse(dependentBy);
+          } catch (ex) {
+            dependentBy = eval(dependentBy);
+          }
 
-            dts.dependentLazyPostField = props.dependentLazyPostField; //TRM
-
-            // Check for headers
-            if (props.headers && props.headers.length > 0) {
-              dts.headers = {"X-From-DataSource": "true"};
-              var headers = props.headers.trim().split(";");
-              var header;
-              for (var i = 0; i < headers.length; i++) {
-                header = headers[i].split(":");
-                if (header.length === 2) {
-                  dts.headers[header[0]] = header[1];
-                }
-              }
-            }
-
-            this.storeDataset(dts);
+          if (dependentBy && dependentBy.loadedFinish)
             dts.allowFetch = true;
+        }
 
-            if (dts.dependentBy && dts.dependentBy !== "" && dts.dependentBy.trim() !== "") {
-              dts.allowFetch = false;
+        if (!props.lazy && dts.allowFetch && (Object.prototype.toString.call(props.watch) !== "[object String]") && !props.filterURL) {
+          // Query string object
+          var queryObj = {};
 
-              //if dependentBy was loaded, the filter in this ds not will be changed and the filter observer not will be called
-              var dependentBy = null;
-              try {
-                dependentBy = JSON.parse(dependentBy);
-              } catch (ex) {
-                dependentBy = eval(dependentBy);
+          // Fill the dataset
+          dts.fetch({
+            params: queryObj
+          }, {
+            success: function(data) {
+              if (data && data.length > 0) {
+                this.active = data[0];
+                this.cursor = 0;
               }
-
-              if (dependentBy && dependentBy.loadedFinish)
-                dts.allowFetch = true;
             }
+          });
+        }
 
-            if (!props.lazy && dts.allowFetch && (Object.prototype.toString.call(props.watch) !== "[object String]") && !props.filterURL) {
-              // Query string object
-              var queryObj = {};
+        if (props.lazy && props.autoPost) {
+          dts.startAutoPost();
+        }
 
-              // Fill the dataset
-              dts.fetch({
-                params: queryObj
-              }, {
-                success: function(data) {
-                  if (data && data.length > 0) {
-                    this.active = data[0];
-                    this.cursor = 0;
-                  }
-                }
-              });
-            }
+        if (props.watch && Object.prototype.toString.call(props.watch) === "[object String]") {
+          this.registerObserver(props.watch, dts);
+          dts.watchFilter = props.watchFilter;
+        }
 
-            if (props.lazy && props.autoPost) {
-              dts.startAutoPost();
-            }
+        // Filter the dataset if the filter property was set
+        if (props.filterURL && props.filterURL.length > 0 && dts.allowFetch) {
+          dts.filter(props.filterURL);
+        }
 
-            if (props.watch && Object.prototype.toString.call(props.watch) === "[object String]") {
-              this.registerObserver(props.watch, dts);
-              dts.watchFilter = props.watchFilter;
-            }
-
-            // Filter the dataset if the filter property was set
-            if (props.filterURL && props.filterURL.length > 0 && dts.allowFetch) {
-              dts.filter(props.filterURL);
-            }
-
-            return dts;
-          };
+        return dts;
+      };
 
       /**
        * Register a dataset as an observer to another one
@@ -3135,7 +3156,7 @@ angular.module('datasourcejs', [])
       return {
         restrict: 'A',
         scope: true,
-		priority: 9999999,
+		    priority: 9999999,
         link: function(scope, element, attrs) {
           scope.data = DatasetManager.datasets;
           if (scope.data[attrs.crnDatasource]) {
@@ -3145,7 +3166,12 @@ angular.module('datasourcejs', [])
             scope.datasource.data = $parse(attrs.crnDatasource)(scope);
           }
           scope.$on('$destroy', function() {
-            delete $rootScope[attrs.crnDatasource];
+            if ($rootScope[attrs.crnDatasource]) {
+              $rootScope[attrs.crnDatasource].destroy();
+
+              delete window[attrs.crnDatasource];
+              delete $rootScope[attrs.crnDatasource];
+            }
           });
         }
       };
