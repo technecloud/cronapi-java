@@ -1160,6 +1160,10 @@ angular.module('datasourcejs', [])
 
 		this.buildURL = function(keyValues) {
           var keyObj = this.getKeyValues(this.active);
+          if (typeof keyValues !== 'object') {
+            keyValues = [keyValues];
+          }
+          
           var suffixPath = "";
           if (this.isOData()) {
             suffixPath = "(";
@@ -1168,10 +1172,18 @@ angular.module('datasourcejs', [])
           var count = 0;
           for (var key in keyObj) {
             if (keyObj.hasOwnProperty(key)) {
-              if (this.isOData()) {
-                suffixPath += key + "='" + keyValues[count] + "'";
+              var value;
+              
+              if (Array.isArray(keyValues)) {
+                value = keyValues[count];
               } else {
-                suffixPath += "/" + keyValues[count];
+                value = keyValues[key];
+              }
+              
+              if (this.isOData()) {
+                suffixPath += key + "='" + value + "'";
+              } else {
+                suffixPath += "/" + value;
               }
             }
             count++;
@@ -1668,17 +1680,14 @@ angular.module('datasourcejs', [])
         /**
          *  Moves the cursor to the specified item
          */
-        this.goTo = function(rowId) {
-          if (rowId == null || rowId == undefined) {
-            return;
-          }
-
+        this.goTo = function(rowId, serverQuery) {
+          var found = false;
           if (typeof rowId === 'object') {
             var dataKeys;
-            if (this.data.length > 0)
+            if (this.data.length > 0) {
               dataKeys = this.getKeyValues(this.data[0]);
+            }
             for (var i = 0; i < this.data.length; i++) {
-              var found = false;
               if (rowId.__$id && this.data[i].__$id) {
                 found = rowId.__$id == this.data[i].__$id;
               } else {
@@ -1710,15 +1719,24 @@ angular.module('datasourcejs', [])
                 return this.active;
               }
             }
-          }
-          else {
-            for (var i = 0; i < this.data.length; i++) {
-              if (this.data[i][this.key] === rowId) {
-                this.cursor = i;
-                this.active = this.copy(this.data[this.cursor], {});
-                return this.active;
+          } else {
+            if (Array.isArray(this.keys)) {
+              for (var i = 0; i < this.data.length; i++) {
+                if (this.data[i][this.keys[0]] === rowId) {
+                  this.cursor = i;
+                  this.active = this.copy(this.data[this.cursor], {});
+                  found = true
+                  return this.active;
+                }
               }
             }
+          }
+          
+          if (!found && serverQuery) {
+            this.findObj(rowId, false, function(row) {
+              this.data.push(row);
+              this.goTo(rowId, false);
+            }.bind(this));
           }
         };
 
