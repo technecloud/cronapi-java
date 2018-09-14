@@ -2251,12 +2251,27 @@ angular.module('datasourcejs', [])
           var filter = "";
           if (expression) {
             var parts = expression.split(";");
-            for (var i = 0; i < parts.length; i++) {
-              var data = splitExpression(parts[i]);
-              if (filter != "") {
-                filter += this.isOData()?" and ":";";
+            var doParser = true;
+            if (parts.length > 0) {
+              var regex = /[\w\d]+=.+/gim
+              for (var i = 0; i < parts.length; i++) {
+                if (!regex.test(parts[i])){
+                  doParser = false; 
+                  break;
+                }
               }
-              filter += data;
+            }
+            
+            if (doParser) {
+              for (var i = 0; i < parts.length; i++) {
+                var data = splitExpression(parts[i]);
+                if (filter != "") {
+                  filter += this.isOData()?" and ":";";
+                }
+                filter += data;
+              }
+            } else {
+              filter = expression;
             }
           }
 
