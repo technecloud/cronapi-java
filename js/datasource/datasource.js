@@ -2253,9 +2253,10 @@ angular.module('datasourcejs', [])
             var parts = expression.split(";");
             var doParser = true;
             if (parts.length > 0) {
-              var regex = /[\w\d]+=.+/gim
+              var regex = /[\w\d]+=.+/gm
               for (var i = 0; i < parts.length; i++) {
-                if (!regex.test(parts[i])){
+                var match = parts[i].match(regex);
+                if (!match){
                   doParser = false; 
                   break;
                 }
