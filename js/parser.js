@@ -358,4 +358,40 @@
     throw new Error("Unable to copy obj! Its type isn't supported.");
   }
   
+  window.getOperatorODATA = function(operator) {
+    if (operator == '=') {
+     return ' eq ';
+    } else if (operator == '!=') {
+     return ' ne ';
+    } else if (operator == '>') {
+     return ' gt ';
+    } else if (operator == '>=') {
+     return ' ge ';
+    } else if (operator == '<') {
+     return ' lt ';
+    } else if (operator == '<=') {
+     return ' le ';
+    }
+  }
+    
+  window.parserOdata = function (data) {
+    var result = '';
+    var operation = data.type;
+    
+    for (i = 0; i < data.args.length; i++) {
+      var arg = data.args[i];
+      var oper = operation;
+      if (i == 0) {
+        oper = '';
+      }
+      if (arg.args) {
+        result = result + ' ' + oper + ' ( ' + parserOdata(arg) + ' ) ';
+      } else {
+        result = result + ' ' + oper + ' ' + arg.left + getOperatorODATA(arg.type) + arg.right;
+      }
+    }
+    
+    return result;
+  }
+  
 })();
