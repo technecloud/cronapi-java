@@ -1181,7 +1181,7 @@ angular.module('datasourcejs', [])
               }
               
               if (this.isOData()) {
-                suffixPath += key + "='" + value + "'";
+                suffixPath += key + "=" + this.getObjectAsString(value);
               } else {
                 suffixPath += "/" + value;
               }
