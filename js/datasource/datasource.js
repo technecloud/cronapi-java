@@ -2495,6 +2495,13 @@ angular.module('datasourcejs', [])
           }
 
           if (this.condition) {
+            try {
+              var obj = JSON.parse(this.condition);
+              if (typeof obj === 'object') {
+                this.condition = window.parserOdata(obj);
+              }
+            } catch (e) {}
+
             var conditionFilter = parseFilterExpression(this.condition);
             if (conditionFilter) {
               if (filter != "") {

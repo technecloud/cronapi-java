@@ -391,7 +391,7 @@
       }
     }
     
-    return result;
+    return result.trim();
   }
   
 })();
