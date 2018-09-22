@@ -378,7 +378,7 @@
     var result = '';
     var operation = data.type;
     
-    for (i = 0; i < data.args.length; i++) {
+    for (var i = 0; i < data.args.length; i++) {
       var arg = data.args[i];
       var oper = operation;
       if (i == 0) {
