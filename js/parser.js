@@ -384,10 +384,10 @@
       if (i == 0) {
         oper = '';
       }
-      if (arg.args) {
-        result = result + ' ' + oper + ' ( ' + parserOdata(arg) + ' ) ';
+      if (arg.args && arg.args.length > 0) {
+        result = result + ' ' + oper.toLowerCase() + ' ( ' + parserOdata(arg) + ' ) ';
       } else {
-        result = result + ' ' + oper + ' ' + arg.left + getOperatorODATA(arg.type) + arg.right;
+        result = result + ' ' + oper.toLowerCase() + ' ' + arg.left + getOperatorODATA(arg.type) + arg.right;
       }
     }
     
