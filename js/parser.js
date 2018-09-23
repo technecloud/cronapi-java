@@ -374,8 +374,8 @@
     }
   }
 
-  window.executeRight(right) {
-
+  window.executeRight = function(right) {
+    var result = 'null';
     if (right != null) {
       if (right.startsWith(':')) {
         result = right;
@@ -383,12 +383,12 @@
       else {
         result = eval(right);
         if (result instanceof Date) {
-          result = "datetimeoffset'" + date.toISOString() + "'";
+          result = "datetimeoffset'" + result.toISOString() + "'";
         }
       }
       return result;
     }
-    return 'null';
+    return result;
   }
     
   window.parserOdata = function (data) {
