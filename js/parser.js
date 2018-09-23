@@ -386,7 +386,6 @@
           result = "datetimeoffset'" + result.toISOString() + "'";
         }
       }
-      return result;
     }
     return result;
   }
