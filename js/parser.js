@@ -373,6 +373,23 @@
      return ' le ';
     }
   }
+
+  window.executeRight(right) {
+
+    if (right != null) {
+      if (right.startsWith(':')) {
+        result = right;
+      }
+      else {
+        result = eval(right);
+        if (result instanceof Date) {
+          result = "datetimeoffset'" + date.toISOString() + "'";
+        }
+      }
+      return result;
+    }
+    return 'null';
+  }
     
   window.parserOdata = function (data) {
     var result = '';
@@ -387,7 +404,7 @@
       if (arg.args && arg.args.length > 0) {
         result = result + ' ' + oper.toLowerCase() + ' ( ' + parserOdata(arg) + ' ) ';
       } else {
-        result = result + ' ' + oper.toLowerCase() + ' ' + arg.left + getOperatorODATA(arg.type) + arg.right;
+        result = result + ' ' + oper.toLowerCase() + ' ' + arg.left + getOperatorODATA(arg.type) + executeRight(arg.right);
       }
     }
     
