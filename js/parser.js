@@ -385,10 +385,13 @@
         if (result instanceof Date) {
           result = "datetimeoffset'" + result.toISOString() + "'";
         }
+        else if (typeof result == 'string') {
+          result = "'" + result + "'";
+        }
       }
     }
     return result;
-  }
+  };
     
   window.parserOdata = function (data) {
     var result = '';
