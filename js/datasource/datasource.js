@@ -539,6 +539,10 @@ angular.module('datasourcejs', [])
           if (this.events.read) {
             this.callDataSourceEvents('read', this.data);
           }
+		  
+		  if (this.events.afterchanges) {
+            this.callDataSourceEvents('afterchanges', this.data);
+          }
         }
 
         this.cancelBatchData = function(callback) {
@@ -777,6 +781,9 @@ angular.module('datasourcejs', [])
               this.hasMemoryData = false;
               this.memoryData = null;
               this.notifyPendingChanges(this.hasMemoryData);
+			  if (this.events.afterchanges) {
+                this.callDataSourceEvents('afterchanges', this.data);
+              }
             }
             this.postDeleteData = null;
             if (callback) {
