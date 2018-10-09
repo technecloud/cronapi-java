@@ -61,7 +61,7 @@ angular.module('datasourcejs', [])
         this.hasMoreResults = false;
         this.loaded = false;
         this.unregisterDataWatch = null;
-        this.dependentBufferLazyPostData = null; //TRM
+        this.dependentBufferLazyPostData = null;
         this.lastAction = null; //TRM
         this.dependentData = null; //TRM
         this.hasMemoryData = false;
@@ -69,8 +69,11 @@ angular.module('datasourcejs', [])
         this.caseInsensitive = null;
         this.terms = null;
         this.checkRequired = true;
+        this.schema;
         var _self = this;
         var service = null;
+
+        this.odataFile = [];
 
         function reverseArr(input) {
           if (input) {
@@ -162,10 +165,11 @@ angular.module('datasourcejs', [])
                 _self.busy = false;
                 if (_callback) {
                   if (_self.isOData()) {
-                    if (verb == "GET") {
+                    if (data.d.result != null) {
                       _self.normalizeData(data.d.results);
                       _callback(data.d.results, true);
-                    } else {
+                    }
+                    else {
                       _self.normalizeObject(data.d);
                       _callback(data.d, true);
                     }
@@ -539,8 +543,8 @@ angular.module('datasourcejs', [])
           if (this.events.read) {
             this.callDataSourceEvents('read', this.data);
           }
-		  
-		  if (this.events.afterchanges) {
+      
+      if (this.events.afterchanges) {
             this.callDataSourceEvents('afterchanges', this.data);
           }
         }
@@ -781,7 +785,7 @@ angular.module('datasourcejs', [])
               this.hasMemoryData = false;
               this.memoryData = null;
               this.notifyPendingChanges(this.hasMemoryData);
-			  if (this.events.afterchanges) {
+        if (this.events.afterchanges) {
                 this.callDataSourceEvents('afterchanges', this.data);
               }
             }
@@ -887,6 +891,81 @@ angular.module('datasourcejs', [])
           }
         }
 
+        this.getODataFiles = function() {
+          this.odataFile = [];
+          for (var key in this.active) {
+            if (key.indexOf('__odataFile_') > -1) {
+
+              var odataFileObj = {
+                field: key.replace('__odataFile_',''),
+                value: this.active[key]
+              }
+              this.odataFile.push(odataFileObj);
+              this.active[odataFileObj.field] = undefined;
+              delete this.active[key];
+            }
+          }
+        };
+
+        this.sendODataFiles = function(obj) {
+          if (obj && this.odataFile && this.odataFile.length > 0) {
+            
+            var url = this.entity;
+            var keysValues = this.getKeyValues(obj);
+            var keysFilter = ['('];
+            var idx = 0;
+            for (var k in keysValues) {
+              if (idx > 0)
+                keysFilter.push(',')
+              keysFilter.push(k);              
+              keysFilter.push('=');
+              keysFilter.push("'" + keysValues[k] + "'");
+              idx++;
+            }
+            keysFilter.push(')');
+            url += keysFilter.join('');
+
+            var _u = JSON.parse(localStorage.getItem('_u'));
+            this.odataFile.forEach(function(of) {
+
+              var file = of.value;
+              var xhr = new XMLHttpRequest;
+              xhr.open('PUT', url + '/' +  of.field + '/$value');
+              xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+              xhr.setRequestHeader('X-File-Name', file.name);
+              xhr.setRequestHeader('Content-Type', (file.type||'application/octet-stream') + ';charset=UTF-8' );
+              xhr.setRequestHeader('X-AUTH-TOKEN', _u.token);
+              
+              xhr.onreadystatechange = function(){
+                  if(xhr.readyState === 4 && xhr.status === 201){
+                    //Having to make another request to get the base64 value
+                    service.call(url + '/' +  of.field, 'GET', {}, false).$promise.error(function(errorMsg) {
+                      Notification.error('Error send file');
+                    }).then(function(data, resultBool) {
+                      obj[of.field] = data[of.field];
+                    });
+                  }
+              };
+              
+              xhr.send(file);
+            });
+            this.odataFile = [];
+          }
+        };
+
+        this.getFieldSchema = function(fieldName) {
+          var s;
+          if (this.schema) {
+            for (var i = 0; i < this.schema.length; i++) {
+              if (this.schema[i].name == fieldName) {
+                s = this.schema[i];
+                break;
+              }
+            }
+          }
+          return s;
+        };
+
         /**
          * Insert or update based on the the datasource state
          */
@@ -902,6 +981,8 @@ angular.module('datasourcejs', [])
 
           this.busy = true;
 
+          this.getODataFiles();
+
           if (this.inserting) {
             // Make a new request to persist the new item
             this.insert(this.active, function(obj, hotData) {
@@ -915,6 +996,8 @@ angular.module('datasourcejs', [])
               if (this.active.__$id) {
                 obj.__$id = this.active.__$id;
               }
+
+              this.sendODataFiles(obj);
 
               this.data.push(obj);
 
@@ -953,7 +1036,7 @@ angular.module('datasourcejs', [])
             this.update(this.active, function(obj, hotData) {
               // Get the list of keys
               var keyObj = this.getKeyValues(this.lastActive);
-
+              
               // For each row data
               this.data.forEach(function(currentRow) {
                 // Iterate all keys checking if the
@@ -1006,6 +1089,8 @@ angular.module('datasourcejs', [])
                   }
                 }
               }.bind(this));
+
+              this.sendODataFiles(this.active);
 
               var func = function() {
                 this.onBackNomalState();
@@ -1165,7 +1250,7 @@ angular.module('datasourcejs', [])
           }
         };
 
-		this.buildURL = function(keyValues) {
+    this.buildURL = function(keyValues) {
           var keyObj = this.getKeyValues(this.active);
           if (typeof keyValues !== 'object') {
             keyValues = [keyValues];
@@ -1234,7 +1319,7 @@ angular.module('datasourcejs', [])
             }
           }.bind(this));
         }
-		
+    
         this.getColumn = function(index) {
           var returnValue = [];
           $.each(this.data, function(key, value) {
@@ -1903,10 +1988,10 @@ angular.module('datasourcejs', [])
 
         this.normalizeValue = function(value, unquote) {
           if (typeof value == 'string') {
-            if (value.length >= 10 && value.match(ISO_PATTERN)) {
+            if (value.length >= 10 && value.match(ISO_PATTERN) && value.length < 100) {
               return new Date(value);
             }
-            else if (value.length >= 8 && value.match(TIME_PATTERN)) {
+            else if (value.length >= 8 && value.match(TIME_PATTERN) && value.length < 100) {
               var g = TIME_PATTERN.exec(value);
               return new Date(Date.UTC(1970, 0, 1, g[1], g[2], g[3]));
             }
@@ -2765,12 +2850,6 @@ angular.module('datasourcejs', [])
               to[key] = this.copy(from[key]);
             }
           }
-          //Verificando os campos que não existem mais no registro (Significa que foi setado para nulo)
-          for (var key in to) {
-            if (key != '__$id' && from[key] == undefined)
-              delete to[key];
-          }
-
           return to;
         };
 
@@ -2934,6 +3013,7 @@ angular.module('datasourcejs', [])
         dts.batchPost = props.batchPost;
         dts.condition = props.condition;
         dts.orderBy = props.orderBy;
+        dts.schema = props.schema;
 
         if (props.dependentLazyPost && props.dependentLazyPost.length > 0) {
           dts.dependentLazyPost = props.dependentLazyPost;
@@ -3071,7 +3151,8 @@ angular.module('datasourcejs', [])
               parametersExpression: $(element).attr('parameters'),
               condition: attrs.condition,
               orderBy: attrs.orderBy,
-              checkRequired: !attrs.hasOwnProperty('checkrequired') || attrs.checkrequired === "" || attrs.checkrequired === "true"
+              schema: attrs.schema ? JSON.parse(attrs.schema) : undefined,
+              checkRequired: !attrs.hasOwnProperty('checkrequired') || attrs.checkrequired === "" || attrs.checkrequired === "true"              
             }
 
             var firstLoad = {
@@ -3204,7 +3285,7 @@ angular.module('datasourcejs', [])
       return {
         restrict: 'A',
         scope: true,
-		    priority: 9999999,
+        priority: 9999999,
         link: function(scope, element, attrs) {
           scope.data = DatasetManager.datasets;
           if (scope.data[attrs.crnDatasource]) {
