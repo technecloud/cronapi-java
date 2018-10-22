@@ -165,13 +165,14 @@ angular.module('datasourcejs', [])
                 _self.busy = false;
                 if (_callback) {
                   if (_self.isOData()) {
-                    if (data.d.result != null) {
-                      _self.normalizeData(data.d.results);
-                      _callback(data.d.results, true);
-                    }
-                    else {
+                    if (data.d != null && data.d.result != null) {
+                      _self.normalizeData(data.d.result);
+                      _callback(data.d.result, true);
+                    } else if (data.d != null) {
                       _self.normalizeObject(data.d);
                       _callback(data.d, true);
+                    } else {
+                      _callback(data, true);
                     }
                   } else {
                     _callback(isCronapiQuery?data.value:data, true);
