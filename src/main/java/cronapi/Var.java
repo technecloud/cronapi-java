@@ -58,7 +58,7 @@ public class Var implements Comparable<Var>, JsonSerializable {
   public static final Var VAR_NEGATIVE_ONE = new Var(-1, false);
   public static final Var VAR_EMPTY = new Var("", false);
   public static final Var VAR_DATE_ZERO;
-  private static final NumberFormat _formatter = new DecimalFormat("0.00000");
+  private static final NumberFormat _formatter = new DecimalFormat("0.0000000000");
   public static String[] ALLOWED_TYPES = {"text", "datetime", "date", "number", "integer",
       "boolean"};
   public static Class[] MAPPED_TYPES = {java.lang.String.class, java.util.Date.class,
