@@ -1160,7 +1160,7 @@ angular.module('datasourcejs', [])
           for (var key in keyObj) {
             if (keyObj.hasOwnProperty(key)) {
               if (this.isOData()) {
-                suffixPath += key + "=" + this.getObjectAsString(keyObj[key]);
+                suffixPath += ((suffixPath == "(")?'':',')  + key + "=" + this.getObjectAsString(keyObj[key]);
               } else {
                 suffixPath += "/" + keyObj[key];
               }
