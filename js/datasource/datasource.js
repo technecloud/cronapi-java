@@ -1,4 +1,4 @@
-//v2.0.14
+//v2.0.13
 var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
 var TIME_PATTERN  = new RegExp("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)(?:\\.(\\d+)?)?S)?");
 var DEP_PATTERN  = new RegExp("\\{\\{(.*?)\\|raw\\}\\}");
@@ -544,8 +544,8 @@ angular.module('datasourcejs', [])
           if (this.events.read) {
             this.callDataSourceEvents('read', this.data);
           }
-
-          if (this.events.afterchanges) {
+      
+      if (this.events.afterchanges) {
             this.callDataSourceEvents('afterchanges', this.data);
           }
         }
@@ -786,7 +786,7 @@ angular.module('datasourcejs', [])
               this.hasMemoryData = false;
               this.memoryData = null;
               this.notifyPendingChanges(this.hasMemoryData);
-              if (this.events.afterchanges) {
+        if (this.events.afterchanges) {
                 this.callDataSourceEvents('afterchanges', this.data);
               }
             }
@@ -910,7 +910,7 @@ angular.module('datasourcejs', [])
 
         this.sendODataFiles = function(obj) {
           if (obj && this.odataFile && this.odataFile.length > 0) {
-
+            
             var url = this.entity;
             var keysValues = this.getKeyValues(obj);
             var keysFilter = ['('];
@@ -918,7 +918,7 @@ angular.module('datasourcejs', [])
             for (var k in keysValues) {
               if (idx > 0)
                 keysFilter.push(',')
-              keysFilter.push(k);
+              keysFilter.push(k);              
               keysFilter.push('=');
               keysFilter.push("'" + keysValues[k] + "'");
               idx++;
@@ -936,18 +936,18 @@ angular.module('datasourcejs', [])
               xhr.setRequestHeader('X-File-Name', file.name);
               xhr.setRequestHeader('Content-Type', (file.type||'application/octet-stream') + ';charset=UTF-8' );
               xhr.setRequestHeader('X-AUTH-TOKEN', _u.token);
-
+              
               xhr.onreadystatechange = function(){
-                if(xhr.readyState === 4 && xhr.status === 201){
-                  //Having to make another request to get the base64 value
-                  service.call(url + '/' +  of.field, 'GET', {}, false).$promise.error(function(errorMsg) {
-                    Notification.error('Error send file');
-                  }).then(function(data, resultBool) {
-                    obj[of.field] = data[of.field];
-                  });
-                }
+                  if(xhr.readyState === 4 && xhr.status === 201){
+                    //Having to make another request to get the base64 value
+                    service.call(url + '/' +  of.field, 'GET', {}, false).$promise.error(function(errorMsg) {
+                      Notification.error('Error send file');
+                    }).then(function(data, resultBool) {
+                      obj[of.field] = data[of.field];
+                    });
+                  }
               };
-
+              
               xhr.send(file);
             });
             this.odataFile = [];
@@ -1037,7 +1037,7 @@ angular.module('datasourcejs', [])
             this.update(this.active, function(obj, hotData) {
               // Get the list of keys
               var keyObj = this.getKeyValues(this.lastActive);
-
+              
               // For each row data
               this.data.forEach(function(currentRow) {
                 // Iterate all keys checking if the
@@ -1251,28 +1251,28 @@ angular.module('datasourcejs', [])
           }
         };
 
-        this.buildURL = function(keyValues) {
+    this.buildURL = function(keyValues) {
           var keyObj = this.getKeyValues(this.active);
           if (typeof keyValues !== 'object') {
             keyValues = [keyValues];
           }
-
+          
           var suffixPath = "";
           if (this.isOData()) {
             suffixPath = "(";
           }
-
+          
           var count = 0;
           for (var key in keyObj) {
             if (keyObj.hasOwnProperty(key)) {
               var value;
-
+              
               if (Array.isArray(keyValues)) {
                 value = keyValues[count];
               } else {
                 value = keyValues[key];
               }
-
+              
               if (this.isOData()) {
                 suffixPath += key + "=" + this.getObjectAsString(value);
               } else {
@@ -1281,7 +1281,7 @@ angular.module('datasourcejs', [])
             }
             count++;
           }
-
+          
           if (this.isOData()) {
             suffixPath += ")";
           }
@@ -1293,7 +1293,7 @@ angular.module('datasourcejs', [])
 
           return url + suffixPath;
         }
-
+        
         this.findObj = function(keyObj, multiple, onSuccess, onError) {
           var url = this.buildURL(keyObj);
 
@@ -1320,7 +1320,7 @@ angular.module('datasourcejs', [])
             }
           }.bind(this));
         }
-
+    
         this.getColumn = function(index) {
           var returnValue = [];
           $.each(this.data, function(key, value) {
@@ -1824,7 +1824,7 @@ angular.module('datasourcejs', [])
               }
             }
           }
-
+          
           if (!found && serverQuery) {
             this.findObj(rowId, false, function(row) {
               this.data.push(row);
@@ -2282,7 +2282,7 @@ angular.module('datasourcejs', [])
           }
         }
 
-        var splitExpression = function(v) {
+       var splitExpression = function(v) {
 
           var pair = null;
           var operator;
@@ -2310,34 +2310,34 @@ angular.module('datasourcejs', [])
           var typeElement = typeof this.normalizeValue(pair[1], true);
 
           if (this.isOData()) {
-            if (operator == "=" && typeElement == 'string') {
-              return "startswith(tolower("+pair[0]+"), "+pair[1].toLowerCase()+")";
-            }
-            else if (operator == "=") {
-              return pair[0] + " eq "+pair[1];
-            }
-            else if (operator == "!=") {
-              return pair[0] + " ne "+pair[1];
-            }
-            else if (operator == ">") {
-              return pair[0] + " gt {"+pair[1];
-            }
-            else if (operator == ">=") {
-              return pair[0] + " ge "+pair[1];
-            }
-            else if (operator == "<") {
-              return pair[0] + " lt "+pair[1];
-            }
-            else if (operator == "<=") {
-              return pair[0] + " le "+pair[1];
-            }
-          } else {
-            if (typeElement == 'string') {
-              return pair[0] + '@' + operator + '%'+pair[1]+'%';
-            } else {
-              return pair[0] + operator + pair[1];
-            }
-          }
+           if (operator == "=" && typeElement == 'string') {
+             return "startswith(tolower("+pair[0]+"), "+pair[1].toLowerCase()+")";
+           }
+           else if (operator == "=") {
+             return pair[0] + " eq "+pair[1];
+           }
+           else if (operator == "!=") {
+             return pair[0] + " ne "+pair[1];
+           }
+           else if (operator == ">") {
+             return pair[0] + " gt {"+pair[1];
+           }
+           else if (operator == ">=") {
+             return pair[0] + " ge "+pair[1];
+           }
+           else if (operator == "<") {
+             return pair[0] + " lt "+pair[1];
+           }
+           else if (operator == "<=") {
+             return pair[0] + " le "+pair[1];
+           }
+         } else {
+           if (typeElement == 'string') {
+             return pair[0] + '@' + operator + '%'+pair[1]+'%';
+           } else {
+             return pair[0] + operator + pair[1];
+           }
+         }
         }.bind(this);
 
         var parseFilterExpression = function(expression) {
@@ -2350,12 +2350,12 @@ angular.module('datasourcejs', [])
               for (var i = 0; i < parts.length; i++) {
                 var match = parts[i].match(regex);
                 if (!match){
-                  doParser = false;
+                  doParser = false; 
                   break;
                 }
               }
             }
-
+            
             if (doParser) {
               for (var i = 0; i < parts.length; i++) {
                 var data = splitExpression(parts[i]);
@@ -2587,23 +2587,11 @@ angular.module('datasourcejs', [])
             return;
           }
 
-          var urlParams;
-
           if (this.condition) {
             try {
               var obj = JSON.parse(this.condition);
               if (typeof obj === 'object') {
-                if (obj.expression) {
-                  this.condition = window.parserOdata(obj.expression);
-                } else {
-                  this.condition = window.parserOdata(obj);
-                }
-
-                if (obj.params) {
-                  for (var i=0;i<obj.params.length;i++) {
-                    props.params[obj.params[i].fieldName] = this.normalizeValue(obj.params[i].fieldValue, true);
-                  }
-                }
+                this.condition = window.parserOdata(obj);
               }
             } catch (e) {}
 
@@ -2973,132 +2961,132 @@ angular.module('datasourcejs', [])
         this.datasets[dataset.name] = dataset;
       },
 
-          /**
-           * Initialize a new dataset
-           */
-          this.initDataset = function(props, scope) {
+      /**
+       * Initialize a new dataset
+       */
+      this.initDataset = function(props, scope) {
 
-            var endpoint = (props.endpoint) ? props.endpoint : "";
-            var dts = new DataSet(props.name, scope);
+        var endpoint = (props.endpoint) ? props.endpoint : "";
+        var dts = new DataSet(props.name, scope);
 
-            // Add this instance into the root scope
-            // This will expose the dataset name as a
-            // global variable
-            $rootScope[props.name] = dts;
-            window[props.name] = dts;
+        // Add this instance into the root scope
+        // This will expose the dataset name as a
+        // global variable
+        $rootScope[props.name] = dts;
+        window[props.name] = dts;
 
-            var defaultApiVersion = 1;
+        var defaultApiVersion = 1;
 
-            dts.entity = props.entity;
+        dts.entity = props.entity;
 
-            if (window.dataSourceMap && window.dataSourceMap[dts.entity]) {
-              dts.entity = window.dataSourceMap[dts.entity].serviceUrlODATA || window.dataSourceMap[dts.entity].serviceUrl;
+        if (window.dataSourceMap && window.dataSourceMap[dts.entity]) {
+          dts.entity = window.dataSourceMap[dts.entity].serviceUrlODATA || window.dataSourceMap[dts.entity].serviceUrl;
+        }
+
+        if (app && app.config && app.config.datasourceApiVersion) {
+          defaultApiVersion = app.config.datasourceApiVersion;
+        }
+
+        dts.apiVersion = props.apiVersion ? parseInt(props.apiVersion) : defaultApiVersion;
+        dts.keys = (props.keys && props.keys.length > 0) ? props.keys.split(",") : [];
+        dts.rowsPerPage = props.rowsPerPage ? props.rowsPerPage : 100; // Default 100 rows per page
+        dts.append = props.append;
+        dts.prepend = props.prepend;
+        dts.endpoint = props.endpoint;
+        dts.filterURL = props.filterURL;
+        dts.autoPost = props.autoPost;
+        dts.deleteMessage = props.deleteMessage;
+        dts.enabled = props.enabled;
+        dts.offset = (props.offset) ? props.offset : 0; // Default offset is 0
+        dts.onError = props.onError;
+        dts.defaultNotSpecifiedErrorMessage = props.defaultNotSpecifiedErrorMessage;
+        dts.onAfterFill = props.onAfterFill;
+        dts.onBeforeCreate = props.onBeforeCreate;
+        dts.onAfterCreate = props.onAfterCreate;
+        dts.onBeforeUpdate = props.onBeforeUpdate;
+        dts.onAfterUpdate = props.onAfterUpdate;
+        dts.onBeforeDelete = props.onBeforeDelete;
+        dts.onAfterDelete = props.onAfterDelete;
+        dts.dependentBy = props.dependentBy;
+        dts.parameters = props.parameters;
+        dts.parametersExpression = props.parametersExpression;
+        dts.checkRequired = props.checkRequired;
+        dts.batchPost = props.batchPost;
+        dts.condition = props.condition;
+        dts.orderBy = props.orderBy;
+        dts.schema = props.schema;
+
+        if (props.dependentLazyPost && props.dependentLazyPost.length > 0) {
+          dts.dependentLazyPost = props.dependentLazyPost;
+          eval(dts.dependentLazyPost).addDependentDatasource(dts);
+        }
+
+        dts.dependentLazyPostField = props.dependentLazyPostField; //TRM
+
+        // Check for headers
+        if (props.headers && props.headers.length > 0) {
+          dts.headers = {"X-From-DataSource": "true"};
+          var headers = props.headers.trim().split(";");
+          var header;
+          for (var i = 0; i < headers.length; i++) {
+            header = headers[i].split(":");
+            if (header.length === 2) {
+              dts.headers[header[0]] = header[1];
             }
+          }
+        }
 
-            if (app && app.config && app.config.datasourceApiVersion) {
-              defaultApiVersion = app.config.datasourceApiVersion;
-            }
+        this.storeDataset(dts);
+        dts.allowFetch = true;
 
-            dts.apiVersion = props.apiVersion ? parseInt(props.apiVersion) : defaultApiVersion;
-            dts.keys = (props.keys && props.keys.length > 0) ? props.keys.split(",") : [];
-            dts.rowsPerPage = props.rowsPerPage ? props.rowsPerPage : 100; // Default 100 rows per page
-            dts.append = props.append;
-            dts.prepend = props.prepend;
-            dts.endpoint = props.endpoint;
-            dts.filterURL = props.filterURL;
-            dts.autoPost = props.autoPost;
-            dts.deleteMessage = props.deleteMessage;
-            dts.enabled = props.enabled;
-            dts.offset = (props.offset) ? props.offset : 0; // Default offset is 0
-            dts.onError = props.onError;
-            dts.defaultNotSpecifiedErrorMessage = props.defaultNotSpecifiedErrorMessage;
-            dts.onAfterFill = props.onAfterFill;
-            dts.onBeforeCreate = props.onBeforeCreate;
-            dts.onAfterCreate = props.onAfterCreate;
-            dts.onBeforeUpdate = props.onBeforeUpdate;
-            dts.onAfterUpdate = props.onAfterUpdate;
-            dts.onBeforeDelete = props.onBeforeDelete;
-            dts.onAfterDelete = props.onAfterDelete;
-            dts.dependentBy = props.dependentBy;
-            dts.parameters = props.parameters;
-            dts.parametersExpression = props.parametersExpression;
-            dts.checkRequired = props.checkRequired;
-            dts.batchPost = props.batchPost;
-            dts.condition = props.condition;
-            dts.orderBy = props.orderBy;
-            dts.schema = props.schema;
+        if (dts.dependentBy && dts.dependentBy !== "" && dts.dependentBy.trim() !== "") {
+          dts.allowFetch = false;
 
-            if (props.dependentLazyPost && props.dependentLazyPost.length > 0) {
-              dts.dependentLazyPost = props.dependentLazyPost;
-              eval(dts.dependentLazyPost).addDependentDatasource(dts);
-            }
+          //if dependentBy was loaded, the filter in this ds not will be changed and the filter observer not will be called
+          var dependentBy = null;
+          try {
+            dependentBy = JSON.parse(dependentBy);
+          } catch (ex) {
+            dependentBy = eval(dependentBy);
+          }
 
-            dts.dependentLazyPostField = props.dependentLazyPostField; //TRM
-
-            // Check for headers
-            if (props.headers && props.headers.length > 0) {
-              dts.headers = {"X-From-DataSource": "true"};
-              var headers = props.headers.trim().split(";");
-              var header;
-              for (var i = 0; i < headers.length; i++) {
-                header = headers[i].split(":");
-                if (header.length === 2) {
-                  dts.headers[header[0]] = header[1];
-                }
-              }
-            }
-
-            this.storeDataset(dts);
+          if (dependentBy && dependentBy.loadedFinish)
             dts.allowFetch = true;
+        }
 
-            if (dts.dependentBy && dts.dependentBy !== "" && dts.dependentBy.trim() !== "") {
-              dts.allowFetch = false;
+        if (!props.lazy && dts.allowFetch && (Object.prototype.toString.call(props.watch) !== "[object String]") && !props.filterURL) {
+          // Query string object
+          var queryObj = {};
 
-              //if dependentBy was loaded, the filter in this ds not will be changed and the filter observer not will be called
-              var dependentBy = null;
-              try {
-                dependentBy = JSON.parse(dependentBy);
-              } catch (ex) {
-                dependentBy = eval(dependentBy);
+          // Fill the dataset
+          dts.fetch({
+            params: queryObj
+          }, {
+            success: function(data) {
+              if (data && data.length > 0) {
+                this.active = data[0];
+                this.cursor = 0;
               }
-
-              if (dependentBy && dependentBy.loadedFinish)
-                dts.allowFetch = true;
             }
+          });
+        }
 
-            if (!props.lazy && dts.allowFetch && (Object.prototype.toString.call(props.watch) !== "[object String]") && !props.filterURL) {
-              // Query string object
-              var queryObj = {};
+        if (props.lazy && props.autoPost) {
+          dts.startAutoPost();
+        }
 
-              // Fill the dataset
-              dts.fetch({
-                params: queryObj
-              }, {
-                success: function(data) {
-                  if (data && data.length > 0) {
-                    this.active = data[0];
-                    this.cursor = 0;
-                  }
-                }
-              });
-            }
+        if (props.watch && Object.prototype.toString.call(props.watch) === "[object String]") {
+          this.registerObserver(props.watch, dts);
+          dts.watchFilter = props.watchFilter;
+        }
 
-            if (props.lazy && props.autoPost) {
-              dts.startAutoPost();
-            }
+        // Filter the dataset if the filter property was set
+        if (props.filterURL && props.filterURL.length > 0 && dts.allowFetch) {
+          dts.filter(props.filterURL);
+        }
 
-            if (props.watch && Object.prototype.toString.call(props.watch) === "[object String]") {
-              this.registerObserver(props.watch, dts);
-              dts.watchFilter = props.watchFilter;
-            }
-
-            // Filter the dataset if the filter property was set
-            if (props.filterURL && props.filterURL.length > 0 && dts.allowFetch) {
-              dts.filter(props.filterURL);
-            }
-
-            return dts;
-          };
+        return dts;
+      };
 
       /**
        * Register a dataset as an observer to another one
@@ -3165,7 +3153,7 @@ angular.module('datasourcejs', [])
               condition: attrs.condition,
               orderBy: attrs.orderBy,
               schema: attrs.schema ? JSON.parse(attrs.schema) : undefined,
-              checkRequired: !attrs.hasOwnProperty('checkrequired') || attrs.checkrequired === "" || attrs.checkrequired === "true"
+              checkRequired: !attrs.hasOwnProperty('checkrequired') || attrs.checkrequired === "" || attrs.checkrequired === "true"              
             }
 
             var firstLoad = {
