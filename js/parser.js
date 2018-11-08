@@ -396,20 +396,21 @@
   window.parserOdata = function (data) {
     var result = '';
     var operation = data.type;
-    
-    for (var i = 0; i < data.args.length; i++) {
-      var arg = data.args[i];
-      var oper = operation;
-      if (i == 0) {
-        oper = '';
-      }
-      if (arg.args && arg.args.length > 0) {
-        result = result + ' ' + oper.toLowerCase() + ' ( ' + parserOdata(arg) + ' ) ';
-      } else {
-        result = result + ' ' + oper.toLowerCase() + ' ' + arg.left + getOperatorODATA(arg.type) + executeRight(arg.right);
+
+    if (data.args) {
+      for (var i = 0; i < data.args.length; i++) {
+        var arg = data.args[i];
+        var oper = operation;
+        if (i == 0) {
+          oper = '';
+        }
+        if (arg.args && arg.args.length > 0) {
+          result = result + ' ' + oper.toLowerCase() + ' ( ' + parserOdata(arg) + ' ) ';
+        } else {
+          result = result + ' ' + oper.toLowerCase() + ' ' + arg.left + getOperatorODATA(arg.type) + executeRight(arg.right);
+        }
       }
     }
-    
     return result.trim();
   }
   
