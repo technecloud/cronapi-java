@@ -1,4 +1,4 @@
-//v2.0.13
+//v2.0.14
 var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
 var TIME_PATTERN  = new RegExp("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)(?:\\.(\\d+)?)?S)?");
 var DEP_PATTERN  = new RegExp("\\{\\{(.*?)\\|raw\\}\\}");
@@ -145,7 +145,7 @@ angular.module('datasourcejs', [])
               }
 
               var cloneObject = {};
-              _self.copy(object, cloneObject);
+              _self.copy(object, cloneObject, true);
               delete cloneObject.__original;
               delete cloneObject.__status;
               delete cloneObject.__originalIdx;
@@ -490,7 +490,7 @@ angular.module('datasourcejs', [])
         this.updateObjectAtIndex = function(obj, data, idx) {
           data = data || this.data;
 
-          this.copy(data[idx], obj);
+          this.copy(obj, data[idx]);
           delete data[idx].__status;
           delete data[idx].__original;
           delete data[idx].__originalIdx;
@@ -597,18 +597,24 @@ angular.module('datasourcejs', [])
         }
 
         this.postBatchData = function(callback) {
+          this.postingBatch = true;
+          var cleanFuncs = [];
           var func = function() {
-            this.storeDependentBuffer(function () {
+            cleanFuncs.push(this.storeDependentBuffer(function () {
               reduce(this.dependentData, function (item, resolve) {
-                item.storeDependentBuffer(function () {
+                cleanFuncs.push(item.storeDependentBuffer(function () {
                   resolve();
-                });
+                }));
               }.bind(this), function () {
+                this.postingBatch = false;
+                for (var x=0;x<cleanFuncs.length;x++) {
+                  cleanFuncs[x]();
+                }
                 if (callback) {
                   callback();
                 }
               }.bind(this))
-            }.bind(this));
+            }.bind(this)));
           }.bind(this);
 
           //Primeiro executa as remoções
@@ -778,7 +784,7 @@ angular.module('datasourcejs', [])
             }
           };
 
-          reduce(array, func, function () {
+          var resetFunc = function() {
             if (!onlyRemove) {
               this.busy = false;
               this.editing = false;
@@ -790,11 +796,16 @@ angular.module('datasourcejs', [])
                 this.callDataSourceEvents('afterchanges', this.data);
               }
             }
-            this.postDeleteData = null;
+          }.bind(this);
+
+          reduce(array, func, function () {
             if (callback) {
               callback();
             }
+            this.postDeleteData = null;
           }.bind(this));
+
+          return resetFunc;
         }
 
         /**
@@ -1775,7 +1786,7 @@ angular.module('datasourcejs', [])
          */
         this.goTo = function(rowId, serverQuery) {
           var found = false;
-          if (typeof rowId === 'object' && rowId !== null) {
+          if (typeof rowId === 'object') {
             var dataKeys;
             if (this.data.length > 0) {
               dataKeys = this.getKeyValues(this.data[0]);
@@ -2009,7 +2020,7 @@ angular.module('datasourcejs', [])
               return new Date(r);
             }
             else if (unquote) {
-              if (value.length > 2 && value.charAt(0) == "'" && value.charAt(value.length-1) == "'") {
+              if (value.length >= 2 && value.charAt(0) == "'" && value.charAt(value.length-1) == "'") {
                 var r = value.substring(1, value.length-1);
                 return r;
               }
@@ -2264,6 +2275,15 @@ angular.module('datasourcejs', [])
           return changed;
         }
 
+        this.isPostingBatchData = function() {
+          var isPosting = this.postingBatch==true;
+          if (this.dependentLazyPost) {
+            isPosting = isPosting || eval(this.dependentLazyPost).isPostingBatchData();
+          }
+
+          return isPosting;
+        }
+
         this.fetchChildren = function(callback) {
           if (this.children) {
             reduce(this.children, function(item, resolve) {
@@ -2375,10 +2395,17 @@ angular.module('datasourcejs', [])
         /**
          *  Fetch all data from the server
          */
+
         this.fetch = function(properties, callbacksObj, isNextOrPrev) {
 
-          var callbacks = callbacksObj || {};
+          if (this.busy || this.postingBatch) {
+            setTimeout(function() {
+              this.fetch(properties, callbacksObj, isNextOrPrev);
+            }.bind(this), 1000);
+            return;
+          }
 
+          var callbacks = callbacksObj || {};
 
           // Success Handler
           var sucessHandler = function(data, headers, raw) {
@@ -2560,7 +2587,7 @@ angular.module('datasourcejs', [])
                 filter += binary[0];
                 filter += this.isOData()?" eq ":"=";
                 var g = DEP_PATTERN.exec(binaryExpression[1]);
-                if (!binary[1] && this.dependentLazyPost && g[1] && g[1].startsWith(this.dependentLazyPost+".")) {
+                if ((!binary[1] || binary[1] == "''") && this.dependentLazyPost && g[1] && g[1].startsWith(this.dependentLazyPost+".")) {
                   cleanData = true;
                   var dds = eval(this.dependentLazyPost);
                   if (dds.active && dds.active.__$id) {
@@ -2594,9 +2621,9 @@ angular.module('datasourcejs', [])
               var obj = JSON.parse(this.condition);
               if (typeof obj === 'object') {
                 if (obj.expression) {
-                  this.condition = window.parserOdata(obj.expression);
+                  this.conditionOdata = window.parserOdata(obj.expression);
                 } else {
-                  this.condition = window.parserOdata(obj);
+                  this.conditionOdata = window.parserOdata(obj);
                 }
 
                 if (obj.params) {
@@ -2610,10 +2637,12 @@ angular.module('datasourcejs', [])
                     props.params[obj.params[i].fieldName] = value;
                   }
                 }
+              } else {
+                this.conditionOdata = this.condition;
               }
             } catch (e) {}
 
-            var conditionFilter = parseFilterExpression(this.condition);
+            var conditionFilter = parseFilterExpression(this.conditionOdata);
             if (conditionFilter) {
               if (filter != "") {
                 filter += this.isOData()?" and ":";";
@@ -2858,7 +2887,7 @@ angular.module('datasourcejs', [])
         /**
          * Clone a JSON Object
          */
-        this.copy = function(from, to) {
+        this.copy = function(from, to, removeEmptyKeys) {
           if (from === null || Object.prototype.toString.call(from) !== '[object Object]')
             return from;
 
@@ -2867,6 +2896,16 @@ angular.module('datasourcejs', [])
           for (var key in from) {
             if (from.hasOwnProperty(key) && key.indexOf('$$') == -1) {
               to[key] = this.copy(from[key]);
+            }
+          }
+
+          if (removeEmptyKeys) {
+            for (var i = 0; i < this.keys.length; i++) {
+              var key = this.keys[i];
+              var val = to[key];
+              if (val == '' || val == null) {
+                delete to[key]
+              }
             }
           }
           return to;
@@ -3185,6 +3224,10 @@ angular.module('datasourcejs', [])
             var timeoutPromise;
 
             attrs.$observe('filter', function(value) {
+              if (datasource.isPostingBatchData()) {
+                return;
+              }
+
               if (!firstLoad.filter) {
                 // Stop the pending timeout
                 $timeout.cancel(timeoutPromise);
@@ -3210,6 +3253,10 @@ angular.module('datasourcejs', [])
             });
 
             attrs.$observe('parameters', function(value) {
+              if (datasource.isPostingBatchData()) {
+                return;
+              }
+
               if (datasource.parameters != value) {
                 datasource.parameters = value;
 
@@ -3224,6 +3271,34 @@ angular.module('datasourcejs', [])
                       success: function (data) {
                         if (datasource.events.refresh) {
                           datasource.callDataSourceEvents('refresh', data, 'parameters');
+                        }
+                      }
+                    });
+                  }
+                }, 0);
+
+              }
+            });
+
+            attrs.$observe('condition', function(value) {
+              if (datasource.isPostingBatchData()) {
+                return;
+              }
+
+              if (datasource.condition != value) {
+                datasource.condition = value;
+
+                $timeout.cancel(timeoutPromise);
+                timeoutPromise =$timeout(function() {
+                  if (datasource.events.overRideRefresh) {
+                    datasource.callDataSourceEvents('overRideRefresh', 'condition', datasource.condition);
+                  } else {
+                    datasource.fetch({
+                      params: {}
+                    }, {
+                      success: function (data) {
+                        if (datasource.events.refresh) {
+                          datasource.callDataSourceEvents('refresh', data, 'condition');
                         }
                       }
                     });

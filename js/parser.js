@@ -376,7 +376,7 @@
 
   window.executeRight = function(right) {
     var result = 'null';
-    if (right != null) {
+    if (right != null && right != undefined) {
       if (right.startsWith(':')) {
         result = right;
       }
@@ -387,6 +387,10 @@
         }
         else if (typeof result == 'string') {
           result = "'" + result + "'";
+        }
+
+        else if (result === undefined || result == null) {
+          result = 'null';
         }
       }
     }
