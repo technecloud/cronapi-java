@@ -1,4 +1,4 @@
-//v2.0.14
+//v2.0.16
 var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
 var TIME_PATTERN  = new RegExp("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)(?:\\.(\\d+)?)?S)?");
 var DEP_PATTERN  = new RegExp("\\{\\{(.*?)\\|raw\\}\\}");
@@ -1371,6 +1371,18 @@ angular.module('datasourcejs', [])
           }
         };
 
+        this.removeODataFields = function(obj) {
+          for (var key in obj) {
+            if (obj.hasOwnProperty(key)) {
+              if (obj[key] && obj[key].__deferred) {
+                delete obj[key];
+              }
+            }
+          }
+
+          return obj;
+        }
+
 
         this.retrieveDefaultValues = function(obj, callback) {
           if (obj) {
@@ -1390,7 +1402,7 @@ angular.module('datasourcejs', [])
                 headers: this.headers
               }).success(function (data, status, headers, config) {
                 if (this.isOData()) {
-                  this.active = data.d;
+                  this.active = this.removeODataFields(data.d);
                   this.normalizeData(this.active)
                 } else {
                   this.active = data;
@@ -3072,6 +3084,7 @@ angular.module('datasourcejs', [])
             dts.condition = props.condition;
             dts.orderBy = props.orderBy;
             dts.schema = props.schema;
+            dts.startMode = props.startMode;
 
             if (props.dependentLazyPost && props.dependentLazyPost.length > 0) {
               dts.dependentLazyPost = props.dependentLazyPost;
@@ -3123,6 +3136,14 @@ angular.module('datasourcejs', [])
                   if (data && data.length > 0) {
                     this.active = data[0];
                     this.cursor = 0;
+                  }
+
+                  if (this.startMode == 'insert') {
+                    this.startInserting();
+                  }
+
+                  if (this.startMode == 'edit') {
+                    this.startEditing();
                   }
                 }
               });
@@ -3220,6 +3241,36 @@ angular.module('datasourcejs', [])
               parameters: true
             }
 
+            var urlParameters;
+            if (scope.params) {
+              for (var paramKey in scope.params) {
+                if (scope.params.hasOwnProperty(paramKey)) {
+                  var value = scope.params[paramKey];
+                  if (paramKey.startsWith("$"+attrs.name+".")) {
+                    var key = paramKey.split(".");
+                    if (key.length == 2) {
+                      if (key[1] == "$filterMode") {
+                        props.startMode = value;
+                      } else {
+                        if (urlParameters) {
+                          urlParameters += ";";
+                        } else {
+                          urlParameters = "";
+                        }
+                        urlParameters += key[1]+"="+value;
+                      }
+                    }
+
+                  }
+                }
+              }
+
+              if (urlParameters) {
+                props.parameters = urlParameters;
+                props.parametersExpression = urlParameters;
+              }
+            }
+
             var datasource = DatasetManager.initDataset(props, scope);
             var timeoutPromise;
 
@@ -3252,33 +3303,35 @@ angular.module('datasourcejs', [])
               }
             });
 
-            attrs.$observe('parameters', function(value) {
-              if (datasource.isPostingBatchData()) {
-                return;
-              }
+            if (!urlParameters) {
+              attrs.$observe('parameters', function(value) {
+                if (datasource.isPostingBatchData()) {
+                  return;
+                }
 
-              if (datasource.parameters != value) {
-                datasource.parameters = value;
+                if (datasource.parameters != value) {
+                  datasource.parameters = value;
 
-                $timeout.cancel(timeoutPromise);
-                timeoutPromise =$timeout(function() {
-                  if (datasource.events.overRideRefresh) {
-                    datasource.callDataSourceEvents('overRideRefresh', 'parameters', datasource.parameters);
-                  } else {
-                    datasource.fetch({
-                      params: {}
-                    }, {
-                      success: function (data) {
-                        if (datasource.events.refresh) {
-                          datasource.callDataSourceEvents('refresh', data, 'parameters');
+                  $timeout.cancel(timeoutPromise);
+                  timeoutPromise =$timeout(function() {
+                    if (datasource.events.overRideRefresh) {
+                      datasource.callDataSourceEvents('overRideRefresh', 'parameters', datasource.parameters);
+                    } else {
+                      datasource.fetch({
+                        params: {}
+                      }, {
+                        success: function (data) {
+                          if (datasource.events.refresh) {
+                            datasource.callDataSourceEvents('refresh', data, 'parameters');
+                          }
                         }
-                      }
-                    });
-                  }
-                }, 0);
+                      });
+                    }
+                  }, 0);
 
-              }
-            });
+                }
+              });
+            }
 
             attrs.$observe('condition', function(value) {
               if (datasource.isPostingBatchData()) {
