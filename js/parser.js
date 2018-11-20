@@ -171,10 +171,10 @@
       },
       escape: function(txt) {
         return txt.trim()
-        .replace(/[\\]/g, "\\\\")
-        .replace(/[\"]/g, '\\"')
-        .replace(/[\n]/g, '\\n')
-        .replace(/[\r]/g, '\\r');
+            .replace(/[\\]/g, "\\\\")
+            .replace(/[\"]/g, '\\"')
+            .replace(/[\n]/g, '\\n')
+            .replace(/[\r]/g, '\\r');
       },
       removeWhite: function(e) {
         e.normalize();
@@ -293,7 +293,7 @@
 
     return json;
   }
-  
+
   window.objectClone = function(obj, validFields) {
     var copy;
 
@@ -309,11 +309,11 @@
 
     if (obj instanceof Array) {
       copy = [];
-      
+
       for (var i = 0, len = obj.length; i < len; i++) {
-          copy[i] = objectClone(obj[i], undefined);
+        copy[i] = objectClone(obj[i], undefined);
       }
-      
+
       return copy;
     }
 
@@ -332,52 +332,52 @@
             return true;
           }
         }
-        
+
         return false;
       }
     }
-    
+
     var isFunction = function(functionToCheck) {
-     return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+      return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
     }
-    
+
     if (obj instanceof Object) {
       copy = {};
-      
+
       for (var attr in obj) {
-  			if ((obj.hasOwnProperty(attr)) && (obj[attr] != undefined) && 
-  			    (attr.substr(0,1) != '_') && (!isFunction(obj[attr])) && 
-  			    (validFieldObject(attr, validFields))) {
-  				copy[attr] = objectClone(obj[attr], validFields[attr]);
-  			}
+        if ((obj.hasOwnProperty(attr)) && (obj[attr] != undefined) &&
+            (attr.substr(0,1) != '_') && (!isFunction(obj[attr])) &&
+            (validFieldObject(attr, validFields))) {
+          copy[attr] = objectClone(obj[attr], validFields[attr]);
+        }
       }
-      
+
       return copy;
     }
-    
+
     throw new Error("Unable to copy obj! Its type isn't supported.");
   }
-  
+
   window.getOperatorODATA = function(operator) {
     if (operator == '=') {
-     return ' eq ';
+      return ' eq ';
     } else if (operator == '!=') {
-     return ' ne ';
+      return ' ne ';
     } else if (operator == '>') {
-     return ' gt ';
+      return ' gt ';
     } else if (operator == '>=') {
-     return ' ge ';
+      return ' ge ';
     } else if (operator == '<') {
-     return ' lt ';
+      return ' lt ';
     } else if (operator == '<=') {
-     return ' le ';
+      return ' le ';
     }
   }
 
   window.executeRight = function(right) {
     var result = 'null';
     if (right != null && right != undefined) {
-      if (right.startsWith(':')) {
+      if (right.startsWith(':') || right.startsWith('datetimeoffset\'') || right.startsWith('datetime\'') ) {
         result = right;
       }
       else {
@@ -396,7 +396,7 @@
     }
     return result;
   };
-    
+
   window.parserOdata = function (data) {
     var result = '';
     var operation = data.type;
@@ -417,5 +417,5 @@
     }
     return result.trim();
   }
-  
+
 })();
