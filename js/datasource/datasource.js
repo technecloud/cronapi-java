@@ -1,4 +1,4 @@
-//v2.0.17
+//v2.0.18
 var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
 var TIME_PATTERN  = new RegExp("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)(?:\\.(\\d+)?)?S)?");
 var DEP_PATTERN  = new RegExp("\\{\\{(.*?)\\|raw\\}\\}");
@@ -2404,6 +2404,98 @@ angular.module('datasourcejs', [])
           return filter;
         }.bind(this);
 
+        var getOperatorODATA = function(operator) {
+          if (operator == '=') {
+            return ' eq ';
+          } else if (operator == '!=') {
+            return ' ne ';
+          } else if (operator == '>') {
+            return ' gt ';
+          } else if (operator == '>=') {
+            return ' ge ';
+          } else if (operator == '<') {
+            return ' lt ';
+          } else if (operator == '<=') {
+            return ' le ';
+          }
+        }.bind(this);
+
+        var executeRight = function(right) {
+          var result = 'null';
+          if (right != null && right != undefined) {
+            if (right.startsWith(':') || right.startsWith('datetimeoffset\'') || right.startsWith('datetime\'') ) {
+              result = right;
+            }
+            else {
+              result = eval(right);
+              if (result instanceof Date) {
+                result = "datetimeoffset'" + result.toISOString() + "'";
+              }
+              else if (typeof result == 'string') {
+                result = "'" + result + "'";
+              }
+
+              else if (result === undefined || result == null) {
+                result = 'null';
+              }
+            }
+          }
+          return result;
+        }.bind(this);
+
+        this.parserOdata = function (data, strategy, resultData) {
+          var result = '';
+          var operation = data.type;
+
+          if (!strategy) {
+            strategy = "default";
+          }
+
+          if (data.args) {
+            for (var i = 0; i < data.args.length; i++) {
+              var arg = data.args[i];
+              var oper = operation;
+
+              if (arg.args && arg.args.length > 0) {
+
+                var value = this.parserOdata(arg, strategy)
+
+                if ((value == '\'\'' || value == 'null' || value == '') && (strategy == 'ignore' || strategy == 'clean')) {
+                  if (resultData) {
+                    resultData.clean = (strategy == 'clean');
+                  }
+                } else {
+
+                  if (value != '' && value != undefined && value != null) {
+                    if (result != '') {
+                      result += ' ' + oper.toLowerCase() + ' ';
+                    }
+
+                    result += '( ' + value + ' ) ';
+                  }
+                }
+              } else {
+                var value = executeRight(arg.right);
+
+                if ((value == '\'\'' || value == 'null' || value == '') && (strategy == 'ignore' || strategy == 'clean')) {
+                  if (resultData) {
+                    resultData.clean = (strategy == 'clean');
+                  }
+                } else {
+                  if (value != '' && value != undefined && value != null) {
+                    if (result != '') {
+                      result += ' ' + oper.toLowerCase() + ' ';
+                    }
+
+                    result += arg.left + getOperatorODATA(arg.type) + value;
+                  }
+                }
+              }
+            }
+          }
+          return result.trim();
+        }.bind(this);
+
         /**
          *  Fetch all data from the server
          */
@@ -2592,28 +2684,38 @@ angular.module('datasourcejs', [])
               var binary = part.split("=");
               var binaryExpression = partExpression.split("=");
               if (binary.length == 2) {
-                if (filter != "") {
-                  filter += this.isOData()?" and ":";";
-                }
+                var filterClause;
 
-                filter += binary[0];
-                filter += this.isOData()?" eq ":"=";
                 var g = DEP_PATTERN.exec(binaryExpression[1]);
                 if ((!binary[1] || binary[1] == "''") && this.dependentLazyPost && g[1] && g[1].startsWith(this.dependentLazyPost+".")) {
-                  cleanData = true;
-                  var dds = eval(this.dependentLazyPost);
-                  if (dds.active && dds.active.__$id) {
-                    filter += eval(this.dependentLazyPost).active.__$id;
-                  } else {
-                    filter += "memory";
+                  if (this.parametersNullStrategy == "clean" || this.parametersNullStrategy == "default") {
+                    cleanData = true;
+                    var dds = eval(this.dependentLazyPost);
+                    if (dds.active && dds.active.__$id) {
+                      filterClause = eval(this.dependentLazyPost).active.__$id;
+                    } else {
+                      filterClause = "memory";
+                    }
                   }
                 } else {
-                  if (!binary[1] && g[1]) {
-                    filter += 'null';
-                    cleanData = true;
+                  if (!binary[1] || binary[1] == "''") {
+                    if (this.parametersNullStrategy == "clean" || this.parametersNullStrategy == "default") {
+                      filterClause = 'null';
+                      cleanData = true;
+                    }
                   } else {
-                    filter += this.getObjectAsString(this.normalizeValue(binary[1], true));
+                    filterClause = this.getObjectAsString(this.normalizeValue(binary[1], true));
                   }
+                }
+
+                if (filterClause) {
+                  filterClause = binary[0] + (this.isOData()?" eq ":"=") + filterClause;
+
+                  if (filter != "") {
+                    filter += this.isOData()?" and ":";";
+                  }
+
+                  filter += filterClause;
                 }
               }
             }
@@ -2632,10 +2734,15 @@ angular.module('datasourcejs', [])
             try {
               var obj = JSON.parse(this.condition);
               if (typeof obj === 'object') {
+                var resultData = {};
                 if (obj.expression) {
-                  this.conditionOdata = window.parserOdata(obj.expression);
+                  this.conditionOdata = this.parserOdata(obj.expression, this.parametersNullStrategy, resultData);
                 } else {
-                  this.conditionOdata = window.parserOdata(obj);
+                  this.conditionOdata = this.parserOdata(obj, this.parametersNullStrategy, resultData);
+                }
+
+                if (!cleanData && resultData.clean) {
+                  cleanData = true;
                 }
 
                 if (obj.params) {
@@ -3080,6 +3187,7 @@ angular.module('datasourcejs', [])
             dts.onAfterDelete = props.onAfterDelete;
             dts.dependentBy = props.dependentBy;
             dts.parameters = props.parameters;
+            dts.parametersNullStrategy = props.parametersNullStrategy;
             dts.parametersExpression = props.parametersExpression;
             dts.checkRequired = props.checkRequired;
             dts.batchPost = props.batchPost;
@@ -3229,6 +3337,7 @@ angular.module('datasourcejs', [])
               batchPost: attrs.batchpost === "true",
               dependentLazyPostField: attrs.dependentLazyPostField,
               parameters: attrs.parameters,
+              parametersNullStrategy: attrs.parametersNullStrategy?attrs.parametersNullStrategy:"default",
               parametersExpression: $(element).attr('parameters'),
               condition: attrs.condition,
               orderBy: attrs.orderBy,
