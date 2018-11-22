@@ -499,6 +499,7 @@ angular.module('datasourcejs', [])
           data = data || this.data;
 
           this.copy(obj, data[idx]);
+          obj.__$id = data[idx].__$id;
           delete data[idx].__status;
           delete data[idx].__original;
           delete data[idx].__originalIdx;
