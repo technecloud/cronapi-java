@@ -31,6 +31,10 @@ angular.module('datasourcejs', [])
           scope.$apply(fc);
         }.bind(scope);
 
+        this.$evalAsync = function(fc) {
+            scope.$evalAsync(fc);
+        }.bind(scope);
+
         this.columns = [];
         this.data = [];
         this.name = name;
