@@ -35,9 +35,7 @@ angular.module('datasourcejs', [])
             scope.$evalAsync(fc);
         }.bind(scope);
 
-        this.$timeout = function(fc, tm) {
-            scope.$timeout(fc, tm);
-        }.bind(scope);
+        this.$timeout = $timeout;
 
         this.columns = [];
         this.data = [];
