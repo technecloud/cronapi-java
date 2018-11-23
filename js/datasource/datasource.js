@@ -3143,7 +3143,7 @@ angular.module('datasourcejs', [])
           /**
            * Initialize a new dataset
            */
-          this.initDataset = function(props, scope) {
+          this.initDataset = function(props, scope, instanceId) {
 
             var endpoint = (props.endpoint) ? props.endpoint : "";
             var dts = new DataSet(props.name, scope);
@@ -3153,6 +3153,7 @@ angular.module('datasourcejs', [])
             // global variable
             $rootScope[props.name] = dts;
             window[props.name] = dts;
+            $rootScope[props.name+".instanceId"] = instanceId;
 
             var defaultApiVersion = 1;
 
@@ -3384,7 +3385,8 @@ angular.module('datasourcejs', [])
               }
             }
 
-            var datasource = DatasetManager.initDataset(props, scope);
+            var instanceId =  parseInt(Math.random() * 9999);
+            var datasource = DatasetManager.initDataset(props, scope, instanceId);
             var timeoutPromise;
 
             attrs.$observe('filter', function(value) {
