@@ -3290,12 +3290,13 @@ angular.module('datasourcejs', [])
     /**
      * Cronus Dataset Directive
      */
-    .directive('datasource', ['DatasetManager', '$timeout', '$parse', 'Notification', '$translate', '$location', function(DatasetManager, $timeout, $parse, Notification, $translate, $location) {
+    .directive('datasource', ['DatasetManager', '$timeout', '$parse', 'Notification', '$translate', '$location','$rootScope', function(DatasetManager, $timeout, $parse, Notification, $translate, $location, $rootScope) {
       return {
         restrict: 'E',
         scope: true,
         template: '',
         link: function(scope, element, attrs) {
+          var instanceId =  parseInt(Math.random() * 9999);
           var init = function() {
 
             //Add in header the path from the request was executed
@@ -3536,6 +3537,14 @@ angular.module('datasourcejs', [])
 
           };
           init();
+          scope.$on('$destroy', function() {
+              if ($rootScope[attrs.name] && $rootScope[attrs.name+".instanceId"] == instanceId) {
+                  $rootScope[attrs.name].destroy();
+                  delete window[attrs.name];
+                  delete $rootScope[attrs.name];
+                  delete  $rootScope[attrs.name+".instanceId"];
+              }
+          });
         }
       };
     }])
@@ -3553,14 +3562,6 @@ angular.module('datasourcejs', [])
             scope.datasource = {};
             scope.datasource.data = $parse(attrs.crnDatasource)(scope);
           }
-          scope.$on('$destroy', function() {
-            if ($rootScope[attrs.crnDatasource]) {
-              $rootScope[attrs.crnDatasource].destroy();
-
-              delete window[attrs.crnDatasource];
-              delete $rootScope[attrs.crnDatasource];
-            }
-          });
         }
       };
     }]);
