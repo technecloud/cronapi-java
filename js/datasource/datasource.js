@@ -28,14 +28,8 @@ angular.module('datasourcejs', [])
         this.noFileUpload = NO_FILE_UPLOAD;
 
         this.$apply = function(fc) {
-          scope.$apply(fc);
+          scope.safeApply(fc);
         }.bind(scope);
-
-        this.$evalAsync = function(fc) {
-            scope.$evalAsync(fc);
-        }.bind(scope);
-
-        this.$timeout = $timeout;
 
         this.columns = [];
         this.data = [];
