@@ -1805,7 +1805,7 @@ angular.module('datasourcejs', [])
          */
         this.goTo = function(rowId, serverQuery) {
           var found = false;
-          if (typeof rowId === 'object') {
+          if (typeof rowId === 'object' && rowId !== null) {
             var dataKeys;
             if (this.data.length > 0) {
               dataKeys = this.getKeyValues(this.data[0]);
