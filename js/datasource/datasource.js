@@ -1,4 +1,4 @@
-//v2.0.18
+//v2.0.19
 var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
 var TIME_PATTERN  = new RegExp("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)(?:\\.(\\d+)?)?S)?");
 var DEP_PATTERN  = new RegExp("\\{\\{(.*?)\\|raw\\}\\}");
@@ -1269,11 +1269,7 @@ angular.module('datasourcejs', [])
             keyValues = [keyValues];
           }
 
-          var suffixPath = "";
-          if (this.isOData()) {
-            suffixPath = "(";
-          }
-
+          var params = "";
           var count = 0;
           for (var key in keyObj) {
             if (keyObj.hasOwnProperty(key)) {
@@ -1285,52 +1281,68 @@ angular.module('datasourcejs', [])
                 value = keyValues[key];
               }
 
-              if (this.isOData()) {
-                suffixPath += key + "=" + this.getObjectAsString(value);
-              } else {
-                suffixPath += "/" + value;
-              }
+              if (count > 0) {
+                params += " and ";
+              } 
+              params += key + " eq " + this.getObjectAsString(value);
             }
+
             count++;
           }
 
-          if (this.isOData()) {
-            suffixPath += ")";
-          }
-
-          var url = this.entity;
-          if (this.entity.endsWith('/')) {
-            url = url.substring(0, url.length-1);
-          }
-
-          return url + suffixPath;
+          return params;
         }
 
         this.findObj = function(keyObj, multiple, onSuccess, onError) {
-          var url = this.buildURL(keyObj);
 
-          this.$promise = $http({
-            method: "GET",
-            url: url,
-            headers: this.headers
-          }).success(function(rows, status, headers, config) {
-            if (this.isOData()) {
-              row = rows.d;
-              this.normalizeObject(row);
-            } else {
-              if (rows && rows.length > 0) {
-                row = rows[0];
+          var keys = this.keys;
+
+          for (var i = 0; i < this.data.length; i++) {
+            
+            var found = false;
+            var item = this.data[i];
+            for (var j=0;j<keys.length;j++) {
+              if (keyObj[j] == item[keys[j]])
+                found = true;
+              else
+                found = false;
+            }
+            
+            if (found) {
+              if (onSuccess) {
+                onSuccess(this.data[i]);
+              }
+              return;
+            }
+          }
+
+          
+          var terms = this.buildURL(keyObj);
+
+          var filterData;
+          
+          filterData = {
+            params: {
+              $filter: terms
+            }
+          }
+
+          if (terms == null || terms.length == 0) {
+            filterData = {}
+          }
+
+          this.fetch(filterData, {
+            success: function(data) {
+              if (onSuccess) {
+                onSuccess(data.length?data[0]:null);
+              }
+            },
+            error: function(error) {
+              if (onError) {
+                onError();
               }
             }
-
-            if (onSuccess) {
-              onSuccess(row);
-            }
-          }.bind(this)).error(function(data, status, headers, config) {
-            if (onError) {
-              onError();
-            }
-          }.bind(this));
+          }, undefined, {lookup: true});
         }
 
         this.getColumn = function(index) {
@@ -1799,6 +1811,11 @@ angular.module('datasourcejs', [])
          */
         this.goTo = function(rowId, serverQuery) {
           var found = false;
+
+          if (rowId == null || rowId == undefined) {
+            return null;
+          }
+
           if (typeof rowId === 'object' && rowId !== null) {
             var dataKeys;
             if (this.data.length > 0) {
@@ -1849,12 +1866,7 @@ angular.module('datasourcejs', [])
             }
           }
 
-          if (!found && serverQuery) {
-            this.findObj(rowId, false, function(row) {
-              this.data.push(row);
-              this.goTo(rowId, false);
-            }.bind(this));
-          }
+          return null;
         };
 
         /**
@@ -1981,12 +1993,17 @@ angular.module('datasourcejs', [])
         /**
          * Cleanup datasource
          */
-        this.cleanup = function() {
+        this.cleanup = function(cleanOptions) {
+          if (!cleanOptions) {
+            cleanOptions = {};
+          }
           this.offset = 0;
           this.rowsCount = -1;
           this.data.length = 0;
-          this.cursor = -1;
-          this.active = {};
+          if (!cleanOptions.ignoreAtive) {
+            this.cursor = -1;
+            this.active = {};
+          }
           this.hasMoreResults = false;
         }
 
@@ -2501,15 +2518,18 @@ angular.module('datasourcejs', [])
          *  Fetch all data from the server
          */
 
-        this.fetch = function(properties, callbacksObj, isNextOrPrev) {
+        this.fetch = function(properties, callbacksObj, isNextOrPrev, fetchOptions) {
 
           if (this.busy || this.postingBatch) {
             setTimeout(function() {
-              this.fetch(properties, callbacksObj, isNextOrPrev);
+              this.fetch(properties, callbacksObj, isNextOrPrev, fetchOptions);
             }.bind(this), 1000);
             return;
           }
 
+          if (!fetchOptions) {
+            fetchOptions = {};
+          }
           var callbacks = callbacksObj || {};
 
           // Success Handler
@@ -2549,96 +2569,107 @@ angular.module('datasourcejs', [])
               }
             }
 
-            // Call the before fill callback
-            if (callbacks.beforeFill) callbacks.beforeFill.apply(this, this.data);
+            if (!fetchOptions.lookup) {
 
-            if (isNextOrPrev) {
-              // If prepend property was set.
-              // Add the new data before the old one
-              if (this.prepend) Array.prototype.unshift.apply(this.data, data);
+              this.fetched = true;
 
-              // If append property was set.
-              // Add the new data after the old one
-              if (this.append) Array.prototype.push.apply(this.data, data);
+             // Call the before fill callback
+              if (callbacks.beforeFill) callbacks.beforeFill.apply(this, this.data);
 
-              // When neither  nor preppend was set
-              // Just replace the current data
-              if (!this.prepend && !this.append) {
+              if (isNextOrPrev) {
+                // If prepend property was set.
+                // Add the new data before the old one
+                if (this.prepend) Array.prototype.unshift.apply(this.data, data);
+
+                // If append property was set.
+                // Add the new data after the old one
+                if (this.append) Array.prototype.push.apply(this.data, data);
+
+                // When neither  nor preppend was set
+                // Just replace the current data
+                if (!this.prepend && !this.append) {
+                  Array.prototype.push.apply(this.data, data);
+                  if (!fetchOptions.ignoreAtive) {
+                    if (this.data.length > 0) {
+                      this.active = data[0];
+                      this.cursor = 0;
+                    } else {
+                      this.active = {};
+                      this.cursor = -1;
+                    }
+                  }
+                }
+              } else {
+                this.cleanup(fetchOptions);
+                if (total != -1) {
+                  this.rowsCount = total;
+                }
                 Array.prototype.push.apply(this.data, data);
                 if (this.data.length > 0) {
-                  this.active = data[0];
-                  this.cursor = 0;
-                } else {
-                  this.active = {};
-                  this.cursor = -1;
+                  if (!fetchOptions.ignoreAtive) {
+                    this.active = data[0];
+                    this.cursor = 0;
+                  }
                 }
               }
-            } else {
-              this.cleanup();
-              if (total != -1) {
-                this.rowsCount = total;
-              }
-              Array.prototype.push.apply(this.data, data);
-              if (this.data.length > 0) {
-                this.active = data[0];
-                this.cursor = 0;
-              }
-            }
 
-            this.columns = [];
-            if (this.data.length > 0) {
-              for (var i = 0; i < this.data[0].length; i++) {
-                this.columns.push(this.getColumn(i));
+              this.columns = [];
+              if (this.data.length > 0) {
+                for (var i = 0; i < this.data[0].length; i++) {
+                  this.columns.push(this.getColumn(i));
+                }
               }
             }
 
             if (callbacks.success) callbacks.success.call(this, data);
 
-            if (this.events.read) {
-              this.callDataSourceEvents('read', data);
-            }
-
-            this.hasMoreResults = (data.length >= this.rowsPerPage);
-
-            if (springVersion) {
-              this.hasMoreResults = this.getLink("next") != null;
-            }
-
-            /*
-             *  Register a watcher for data
-             *  if the autopost property was set
-             *  It means that any change on dataset items will
-             *  generate a new request on the server
-             */
-            if (this.autoPost) {
-              this.startAutoPost();
-            }
-
-            this.loaded = true;
-            this.loadedFinish = true;
-            this.handleAfterCallBack(this.onAfterFill);
-            var thisDatasourceName = this.name;
-            $('datasource').each(function(idx, elem) {
-              var dependentBy = null;
-              var dependent = window[elem.getAttribute('name')];
-              if (dependent && elem.getAttribute('dependent-by') !== "" && elem.getAttribute('dependent-by') != null) {
-                try {
-                  dependentBy = JSON.parse(elem.getAttribute('dependent-by'));
-                } catch (ex) {
-                  dependentBy = eval(elem.getAttribute('dependent-by'));
-                }
-
-                if (dependentBy) {
-                  if (dependentBy.name == thisDatasourceName) {
-                    if (!dependent.filterURL)
-                      eval(dependent.name).fetch();
-                    //if has filter, the filter observer will be called
-                  }
-                } else {
-                  console.log('O dependente ' + elem.getAttribute('dependent-by') + ' do pai ' + thisDatasourceName + ' ainda não existe.')
-                }
+            if (!fetchOptions.lookup) {
+              if (this.events.read) {
+                this.callDataSourceEvents('read', data);
               }
-            });
+
+              this.hasMoreResults = (data.length >= this.rowsPerPage);
+
+              if (springVersion) {
+                this.hasMoreResults = this.getLink("next") != null;
+              }
+
+              /*
+              *  Register a watcher for data
+              *  if the autopost property was set
+              *  It means that any change on dataset items will
+              *  generate a new request on the server
+              */
+              if (this.autoPost) {
+                this.startAutoPost();
+              }
+
+              this.loaded = true;
+              this.loadedFinish = true;
+              this.handleAfterCallBack(this.onAfterFill);
+              var thisDatasourceName = this.name;
+              $('datasource').each(function(idx, elem) {
+                var dependentBy = null;
+                var dependent = window[elem.getAttribute('name')];
+                if (dependent && elem.getAttribute('dependent-by') !== "" && elem.getAttribute('dependent-by') != null) {
+                  try {
+                    dependentBy = JSON.parse(elem.getAttribute('dependent-by'));
+                  } catch (ex) {
+                    dependentBy = eval(elem.getAttribute('dependent-by'));
+                  }
+
+                  if (dependentBy) {
+                    if (dependentBy.name == thisDatasourceName) {
+                      if (!dependent.filterURL)
+                        eval(dependent.name).fetch();
+                      //if has filter, the filter observer will be called
+                    }
+                  } else {
+                    console.log('O dependente ' + elem.getAttribute('dependent-by') + ' do pai ' + thisDatasourceName + ' ainda não existe.')
+                  }
+                }
+              });
+           }
           }.bind(this);
 
           // Ignore any call if the datasource is busy (fetching another request)
@@ -2675,8 +2706,18 @@ angular.module('datasourcejs', [])
           var order = "";
           var cleanData = false;
           var canProceed = true;
+          
           if (this.parameters && this.parameters.length > 0) {
-            var parts = this.parameters.split(";");
+
+            var parsedParameters;
+
+            if (fetchOptions.lookup) {
+              parsedParameters = this.$interpolate(this.parametersExpression)(this.$scope);
+            } else {
+              parsedParameters = this.parameters;
+            }
+
+            var parts = parsedParameters.split(";");
             var partsExpression = this.parametersExpression.split(";");
             for (var i=0;i<parts.length;i++) {
               var part = parts[i];
@@ -2733,7 +2774,15 @@ angular.module('datasourcejs', [])
 
           if (this.condition) {
             try {
-              var obj = JSON.parse(this.condition);
+              var parsedCondition;
+            
+              if (fetchOptions.lookup) {
+                parsedCondition = this.$interpolate(this.conditionExpression)(this.$scope);
+              } else {
+                parsedCondition = this.condition;
+              }
+
+              var obj = JSON.parse(parsedCondition);
               if (typeof obj === 'object') {
                 var resultData = {};
                 if (obj.expression) {
@@ -2792,7 +2841,7 @@ angular.module('datasourcejs', [])
           }
 
           //Check request, if  is dependentLazyPost, break old request
-          if (this.dependentLazyPost && !this.parameters) {
+          if (this.dependentLazyPost && !this.parameters && !this.condition) {
             if (eval(this.dependentLazyPost).active) {
               var checkRequestId = '';
               var keyDependentLazyPost = this.getKeyValues(eval(this.dependentLazyPost).active);
@@ -3143,7 +3192,7 @@ angular.module('datasourcejs', [])
           /**
            * Initialize a new dataset
            */
-          this.initDataset = function(props, scope, instanceId) {
+          this.initDataset = function(props, scope, $compile, $parse, $interpolate, instanceId) {
 
             var endpoint = (props.endpoint) ? props.endpoint : "";
             var dts = new DataSet(props.name, scope);
@@ -3194,9 +3243,14 @@ angular.module('datasourcejs', [])
             dts.checkRequired = props.checkRequired;
             dts.batchPost = props.batchPost;
             dts.condition = props.condition;
+            dts.conditionExpression = props.conditionExpression;
             dts.orderBy = props.orderBy;
             dts.schema = props.schema;
             dts.startMode = props.startMode;
+            dts.lazy = props.lazy;
+            dts.$compile = $compile;
+            dts.$parse = $parse;
+            dts.$interpolate = $interpolate;
 
             if (props.dependentLazyPost && props.dependentLazyPost.length > 0) {
               dts.dependentLazyPost = props.dependentLazyPost;
@@ -3291,7 +3345,7 @@ angular.module('datasourcejs', [])
     /**
      * Cronus Dataset Directive
      */
-    .directive('datasource', ['DatasetManager', '$timeout', '$parse', 'Notification', '$translate', '$location','$rootScope', function(DatasetManager, $timeout, $parse, Notification, $translate, $location, $rootScope) {
+    .directive('datasource', ['DatasetManager', '$timeout', '$parse', 'Notification', '$translate', '$location','$rootScope', '$compile', '$interpolate', function(DatasetManager, $timeout, $parse, Notification, $translate, $location, $rootScope, $compile, $interpolate) {
       return {
         restrict: 'E',
         scope: true,
@@ -3342,6 +3396,7 @@ angular.module('datasourcejs', [])
               parameters: attrs.parameters,
               parametersNullStrategy: attrs.parametersNullStrategy?attrs.parametersNullStrategy:"default",
               parametersExpression: $(element).attr('parameters'),
+              conditionExpression: $(element).attr('condition'),
               condition: attrs.condition,
               orderBy: attrs.orderBy,
               schema: attrs.schema ? JSON.parse(attrs.schema) : undefined,
@@ -3386,7 +3441,7 @@ angular.module('datasourcejs', [])
             }
 
             var instanceId =  parseInt(Math.random() * 9999);
-            var datasource = DatasetManager.initDataset(props, scope, instanceId);
+            var datasource = DatasetManager.initDataset(props, scope, $compile, $parse, $interpolate, instanceId);
             var timeoutPromise;
 
             attrs.$observe('filter', function(value) {
@@ -3429,6 +3484,8 @@ angular.module('datasourcejs', [])
 
                   $timeout.cancel(timeoutPromise);
                   timeoutPromise =$timeout(function() {
+                    datasource.callDataSourceEvents('changeDependency', 'parameters', datasource.parameters);
+
                     if (datasource.events.overRideRefresh) {
                       datasource.callDataSourceEvents('overRideRefresh', 'parameters', datasource.parameters);
                     } else {
@@ -3458,6 +3515,8 @@ angular.module('datasourcejs', [])
 
                 $timeout.cancel(timeoutPromise);
                 timeoutPromise =$timeout(function() {
+                  datasource.callDataSourceEvents('changeDependency', 'condition', datasource.condition);
+
                   if (datasource.events.overRideRefresh) {
                     datasource.callDataSourceEvents('overRideRefresh', 'condition', datasource.condition);
                   } else {
