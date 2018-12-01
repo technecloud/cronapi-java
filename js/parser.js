@@ -3,6 +3,31 @@
   var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
   var TIME_PATTERN  = new RegExp("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)(?:\\.(\\d+)?)?S)?");
 
+  window.stringToJs = function(value) {
+    var formated = "";
+
+    if (value != undefined && value != null) {
+      value = value.toString();
+      for (var i = 0; i < value.length; i++) {
+        var c = value.charAt(i);
+        if (c == "\\") {
+          formated += "\\\\";
+        } else if (c == "'") {
+          formated += "\\'";
+        } else if (c == "\"") {
+          formated += "\\\"";
+        } else if (c == "\n") {
+          formated += "\\n";
+        } else if (c == "\r") {
+        } else {
+          formated += c;
+        }
+      }
+    }
+
+    return formated;
+  }
+
   window.objToOData = function(o) {
     if (o == null || o == undefined) {
       return "null";
