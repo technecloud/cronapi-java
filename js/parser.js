@@ -1,5 +1,70 @@
 (function() {
 
+  var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
+  var TIME_PATTERN  = new RegExp("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)(?:\\.(\\d+)?)?S)?");
+
+  window.objToOData = function(o) {
+    if (o == null || o == undefined) {
+      return "null";
+    }
+    else if (typeof o == 'number' || typeof o == 'boolean') {
+      return o+"";
+    }
+    else if (o instanceof Date) {
+      return "datetimeoffset'"+o.toISOString()+"'";
+    }
+
+    return "'"+o+"'";
+  }
+
+  window.oDataToObj = function(value, unquote) {
+    if (unquote == null || unquote == undefined) {
+      unquote = true;
+    }
+
+    if (typeof value == 'string') {
+      if (value.length >= 10 && value.match(ISO_PATTERN) && value.length < 100) {
+        return new Date(value);
+      }
+      else if (value.length >= 8 && value.match(TIME_PATTERN) && value.length < 100) {
+        var g = TIME_PATTERN.exec(value);
+        return new Date(Date.UTC(1970, 0, 1, g[1], g[2], g[3]));
+      }
+      else if (value.length >= 10 && value.substring(0, 6) == '/Date(' && value.substring(value.length - 2, value.length) == ")/") {
+        var r = value.substring(6, value.length-2);
+        return new Date(parseInt(r));
+      }
+      else if (value.length >= 20 && value.substring(0, 9) == "datetime'" && value.substring(value.length - 1, value.length) == "'") {
+        var r = value.substring(9, value.length-1);
+        return new Date(r);
+      }
+      else if (value.length >= 20 && value.substring(0, 15) == "datetimeoffset'" && value.substring(value.length - 1, value.length) == "'") {
+        var r = value.substring(15, value.length-1);
+        return new Date(r);
+      }
+      else if (unquote) {
+        if (value.length >= 2 && ((value.charAt(0) == "'" && value.charAt(value.length-1) == "'") || (value.charAt(0) == "\"" && value.charAt(value.length-1) == "\"")) ) {
+          var r = value.substring(1, value.length-1);
+          return r;
+        }
+
+        else if (value == 'true' || value == 'false') {
+          return (value == 'true')
+        }
+
+        else if (value == 'null') {
+          return null;
+        }
+
+        else if (value != '') {
+          return parseFloat(value);
+        }
+      }
+    }
+
+    return value;
+  }
+
   window.parseXml = function(xml) {
     var dom = null;
 
