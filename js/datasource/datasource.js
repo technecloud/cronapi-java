@@ -922,7 +922,7 @@ angular.module('datasourcejs', [])
             keysFilter.push(',')
           keysFilter.push(k);
           keysFilter.push('=');
-          keysFilter.push("'" + keysValues[k] + "'");
+          keysFilter.push(window.objToOData(keysValues[k]));
           idx++;
         }
         keysFilter.push(')');
