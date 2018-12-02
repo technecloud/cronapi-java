@@ -2601,27 +2601,35 @@ angular.module('datasourcejs', [])
                         this.loadedFinish = true;
                         this.handleAfterCallBack(this.onAfterFill);
                         var thisDatasourceName = this.name;
-                        $('datasource').each(function(idx, elem) {
+                        if (!this.isOData()) {
+                          $('datasource').each(function (idx, elem) {
                             var dependentBy = null;
                             var dependent = window[elem.getAttribute('name')];
-                            if (dependent && elem.getAttribute('dependent-by') !== "" && elem.getAttribute('dependent-by') != null) {
-                                try {
-                                    dependentBy = JSON.parse(elem.getAttribute('dependent-by'));
-                                } catch (ex) {
-                                    dependentBy = eval(elem.getAttribute('dependent-by'));
-                                }
+                            if (dependent && elem.getAttribute('dependent-by')
+                                !== "" && elem.getAttribute('dependent-by')
+                                != null) {
+                              try {
+                                dependentBy = JSON.parse(
+                                    elem.getAttribute('dependent-by'));
+                              } catch (ex) {
+                                dependentBy = eval(
+                                    elem.getAttribute('dependent-by'));
+                              }
 
-                                if (dependentBy) {
-                                    if (dependentBy.name == thisDatasourceName) {
-                                        if (!dependent.filterURL)
-                                            eval(dependent.name).fetch();
-                                        //if has filter, the filter observer will be called
-                                    }
-                                } else {
-                                    console.log('O dependente ' + elem.getAttribute('dependent-by') + ' do pai ' + thisDatasourceName + ' ainda não existe.')
+                              if (dependentBy) {
+                                if (dependentBy.name == thisDatasourceName) {
+                                  if (!dependent.filterURL)
+                                    eval(dependent.name).fetch();
+                                  //if has filter, the filter observer will be called
                                 }
+                              } else {
+                                console.log('O dependente ' + elem.getAttribute(
+                                    'dependent-by') + ' do pai '
+                                    + thisDatasourceName + ' ainda não existe.')
+                              }
                             }
-                        });
+                          });
+                        }
                     }
                 }.bind(this);
 
