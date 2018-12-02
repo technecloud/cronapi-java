@@ -1,4 +1,4 @@
-//v2.0.21
+//v2.0.22
 var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
 var TIME_PATTERN  = new RegExp("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)(?:\\.(\\d+)?)?S)?");
 var DEP_PATTERN  = new RegExp("\\{\\{(.*?)\\|raw\\}\\}");
@@ -1130,13 +1130,18 @@ angular.module('datasourcejs', [])
                 if (this.isOData()) {
                     suffixPath = "(";
                 }
+                var count = 0;
                 for (var key in keyObj) {
                     if (keyObj.hasOwnProperty(key)) {
                         if (this.isOData()) {
+                            if (count > 0) {
+                                suffixPath += ",";
+                            }
                             suffixPath += key + "=" + this.getObjectAsString(keyObj[key]);
                         } else {
                             suffixPath += "/" + keyObj[key];
                         }
+                        count++;
                     }
                 }
                 if (this.isOData()) {
