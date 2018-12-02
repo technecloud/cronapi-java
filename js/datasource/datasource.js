@@ -2463,7 +2463,11 @@ angular.module('datasourcejs', [])
                                         result += ' ' + oper.toLowerCase() + ' ';
                                     }
 
-                                    result += arg.left + getOperatorODATA(arg.type) + value;
+                                    if (arg.type == '%') {
+                                      result += "substringof("+value.toLowerCase()+", tolower("+arg.left+"))";
+                                    } else {
+                                      result += arg.left + getOperatorODATA(arg.type) + value;
+                                    }
                                 }
                             }
                         }
