@@ -2654,6 +2654,15 @@ angular.module('datasourcejs', [])
             });
           }
         }
+        if (this.startMode == 'insert') {
+          this.startMode = null;
+          this.startInserting();
+        }
+
+        if (this.startMode == 'edit') {
+          this.startMode = null;
+          this.startEditing();
+        }
       }.bind(this);
 
       // Ignore any call if the datasource is busy (fetching another request)
@@ -3286,14 +3295,6 @@ angular.module('datasourcejs', [])
               if (data && data.length > 0) {
                 this.active = data[0];
                 this.cursor = 0;
-              }
-
-              if (this.startMode == 'insert') {
-                this.startInserting();
-              }
-
-              if (this.startMode == 'edit') {
-                this.startEditing();
               }
             }
           });
