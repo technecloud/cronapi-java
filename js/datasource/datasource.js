@@ -113,6 +113,7 @@ angular.module('datasourcejs', [])
         call: function(url, verb, obj, applyScope) {
           var object = {};
           var isCronapiQuery = (url.indexOf('/cronapi/query/') >= 0);
+          var isCronapiQueryODataV2 = (url.indexOf('/cronapi/odata/v2/') >= 0);
 
           if (isCronapiQuery) {
             object.inputs = [obj];
@@ -140,6 +141,33 @@ angular.module('datasourcejs', [])
             }
 
             object.fields = fields;
+          } else if(isCronapiQueryODataV2) {
+            object = obj;
+            _self.headers["X-DataSource-Inputs"] = JSON.stringify([obj]);
+
+            var fields = {};
+
+            var _callback;
+            var _callbackError;
+            _self.busy = true;
+            url = url.replace('/specificSearch', '');
+            url = url.replace('/generalSearch', '');
+
+            if (_self && _self.$scope && _self.$scope.vars) {
+              fields["vars"] = {};
+              for (var attr in _self.$scope.vars) {
+                fields.vars[attr] = _self.$scope.vars[attr];
+              }
+            }
+
+            for (var key in _self.$scope) {
+              if (_self.$scope[key] && _self.$scope[key].constructor && _self.$scope[key].constructor.name == "DataSet") {
+                fields[key] = {};
+                fields[key].active = _self.$scope[key].active;
+              }
+            }
+
+            _self.headers["X-DataSource-Fields"] = JSON.stringify(fields);
           } else {
             object = obj;
           }
