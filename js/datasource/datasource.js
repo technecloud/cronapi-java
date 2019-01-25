@@ -3207,6 +3207,9 @@ angular.module('datasourcejs', [])
 
         if (window.dataSourceMap && window.dataSourceMap[dts.entity]) {
           dts.entity = window.dataSourceMap[dts.entity].serviceUrlODATA || window.dataSourceMap[dts.entity].serviceUrl;
+          if(dts.entity.charAt(0) === "/"){
+            dts.entity = dts.entity.substr(1);
+          }
         }
 
         if (app && app.config && app.config.datasourceApiVersion) {
@@ -3563,7 +3566,10 @@ angular.module('datasourcejs', [])
           datasource.entity = value;
 
           if (window.dataSourceMap && window.dataSourceMap[datasource.entity]) {
-            datasource.entity = window.dataSourceMap[datasource.entity].serviceUrlODATA || window.dataSourceMap[datasource.entity].serviceUrl;;
+            datasource.entity = window.dataSourceMap[datasource.entity].serviceUrlODATA || window.dataSourceMap[datasource.entity].serviceUrl;
+            if(datasource.entity.charAt(0) === "/"){
+              datasource.entity = datasource.entity.substr(1);
+            }
           }
 
           if (!firstLoad.entity) {
