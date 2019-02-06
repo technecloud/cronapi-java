@@ -910,7 +910,7 @@ angular.module('datasourcejs', [])
       }
     };
 
-    this.sendODataFiles = function(obj) {
+    this.sendODataFiles = function(obj, callback) {
       if (obj && this.odataFile && this.odataFile.length > 0) {
 
         var url = this.entity;
@@ -945,7 +945,11 @@ angular.module('datasourcejs', [])
               service.call(url + '/' +  of.field, 'GET', {}, false).$promise.error(function(errorMsg) {
                 Notification.error('Error send file');
               }).then(function(data, resultBool) {
-                obj[of.field] = data[of.field];
+                if (callback) {
+                  callback({ field: of.field, data: data });
+                } else {
+                  obj[of.field] = data[of.field];
+                }
               });
             }
           };
@@ -1000,38 +1004,38 @@ angular.module('datasourcejs', [])
             obj.__$id = this.active.__$id;
           }
 
-          this.sendODataFiles(obj);
+          this.sendODataFiles(obj, function (result) {
+            obj[result.field] = result.data[result.field];
 
-          this.data.push(obj);
+            _self.data.push(obj);
 
-          var func = function() {
-            // The new object is now the active
-            this.active = obj;
+            var func = function() {
+              // The new object is now the active
+              _self.active = obj;
 
-            this.handleAfterCallBack(this.onAfterCreate);
-            this.onBackNomalState();
+              _self.handleAfterCallBack(_self.onAfterCreate);
+              _self.onBackNomalState();
 
-            if (onSuccess) {
-              onSuccess(this.active);
+              if (onSuccess) {
+                onSuccess(_self.active);
+              }
+
+              if (_self.events.create && hotData) {
+                _self.callDataSourceEvents('create', _self.active);
+                delete _self.active.__sender;
+              }
+
+              if (_self.events.memorycreate && !hotData) {
+                _self.callDataSourceEvents('memorycreate', _self.active);
+              }
+            }.bind(_self);
+
+            if (_self.dependentData && !_self.dependentLazyPost && !_self.batchPost) {
+              _self.flushDependencies(func);
+            } else {
+              func();
             }
-
-            if (this.events.create && hotData) {
-              this.callDataSourceEvents('create', this.active);
-              delete this.active.__sender;
-            }
-
-            if (this.events.memorycreate && !hotData) {
-              this.callDataSourceEvents('memorycreate', this.active);
-            }
-          }.bind(this);
-
-          if (this.dependentData && !this.dependentLazyPost && !this.batchPost) {
-            this.flushDependencies(func);
-          } else {
-            func();
-          }
-
-
+          });
         }.bind(this), onError);
 
       } else if (this.editing) {
