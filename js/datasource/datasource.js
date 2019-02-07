@@ -1004,38 +1004,48 @@ angular.module('datasourcejs', [])
             obj.__$id = this.active.__$id;
           }
 
-          this.sendODataFiles(obj, function (result) {
-            obj[result.field] = result.data[result.field];
+          var func = function() {
+            // The new object is now the active
+            this.active = obj;
 
-            _self.data.push(obj);
+            this.handleAfterCallBack(this.onAfterCreate);
+            this.onBackNomalState();
 
-            var func = function() {
-              // The new object is now the active
-              _self.active = obj;
+            if (onSuccess) {
+              onSuccess(this.active);
+            }
 
-              _self.handleAfterCallBack(_self.onAfterCreate);
-              _self.onBackNomalState();
+            if (this.events.create && hotData) {
+              this.callDataSourceEvents('create', this.active);
+              delete _self.active.__sender;
+            }
 
-              if (onSuccess) {
-                onSuccess(_self.active);
-              }
+            if (this.events.memorycreate && !hotData) {
+              this.callDataSourceEvents('memorycreate', this.active);
+            }
+          }.bind(this);
 
-              if (_self.events.create && hotData) {
-                _self.callDataSourceEvents('create', _self.active);
-                delete _self.active.__sender;
-              }
+          var proceed = function () {
+            this.data.push(obj);
 
-              if (_self.events.memorycreate && !hotData) {
-                _self.callDataSourceEvents('memorycreate', _self.active);
-              }
-            }.bind(_self);
-
-            if (_self.dependentData && !_self.dependentLazyPost && !_self.batchPost) {
-              _self.flushDependencies(func);
+            if (this.dependentData && !this.dependentLazyPost && !this.batchPost) {
+              this.flushDependencies(func);
             } else {
               func();
             }
-          });
+          }.bind(this);
+
+          if (this.odataFile && this.odataFile.length > 0) {
+            this.sendODataFiles(obj, function (result) {
+              obj[result.field] = result.data[result.field];
+
+              proceed();
+            });
+          } else {
+            this.sendODataFiles(obj);
+
+            proceed();
+          }
         }.bind(this), onError);
 
       } else if (this.editing) {
