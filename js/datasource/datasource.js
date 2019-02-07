@@ -2804,7 +2804,9 @@ angular.module('datasourcejs', [])
                   value = value.substring(1, value.length-1);
                 }
 
-                props.params[obj.params[i].fieldName] = value;
+                if (value !== '' && value !== undefined && value !== null) {
+                  props.params[obj.params[i].fieldName] = value;
+                }
               }
             }
           } else {
