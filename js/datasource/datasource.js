@@ -2800,7 +2800,7 @@ angular.module('datasourcejs', [])
               for (var i=0;i<obj.params.length;i++) {
                 var value = obj.params[i].fieldValue;
 
-                if (value.length > 2 && value.charAt(0) == "'" && value.charAt(value.length-1) == "'") {
+                if (value.length >= 2 && value.charAt(0) == "'" && value.charAt(value.length-1) == "'") {
                   value = value.substring(1, value.length-1);
                 }
 
