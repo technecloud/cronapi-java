@@ -163,7 +163,7 @@ angular.module('datasourcejs', [])
             headers: _self.headers
           }).success(function(data, status, headers, config) {
             _self.busy = false;
-            if(_self.$scope.$ionicLoading !== undefined) {
+            if(_self.$scope.$ionicLoading) {
               _self.$scope.$ionicLoading.hide();
             }
             if (_callback) {
@@ -192,7 +192,7 @@ angular.module('datasourcejs', [])
             }
           }).error(function(data, status, headers, config) {
             _self.busy = false;
-            if(_self.$scope.$ionicLoading !== undefined) {
+            if(_self.$scope.$ionicLoading) {
               _self.$scope.$ionicLoading.hide();
             }
             var msg;
@@ -209,7 +209,7 @@ angular.module('datasourcejs', [])
 
           this.$promise.then = function(callback) {
             this.$promise.then = function(callback) {
-              if(_self.$scope.$ionicLoading !== undefined) {
+              if(_self.$scope.$ionicLoading) {
                 var data = (object) ? cloneObject : null;
                 for (var key in data) {
                   if (_self.$scope.cronapi.internal.isBase64(data[key])) {
