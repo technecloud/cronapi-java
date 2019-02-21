@@ -208,7 +208,6 @@ angular.module('datasourcejs', [])
           });
 
           this.$promise.then = function(callback) {
-            this.$promise.then = function(callback) {
               if(_self.$scope.$ionicLoading) {
                 var data = (object) ? cloneObject : null;
                 for (var key in data) {
