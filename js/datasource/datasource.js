@@ -1,4 +1,4 @@
-//v2.0.20
+//v2.0.22
 var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
 var TIME_PATTERN  = new RegExp("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)(?:\\.(\\d+)?)?S)?");
 var DEP_PATTERN  = new RegExp("\\{\\{(.*?)\\|raw\\}\\}");
@@ -163,6 +163,9 @@ angular.module('datasourcejs', [])
             headers: _self.headers
           }).success(function(data, status, headers, config) {
             _self.busy = false;
+            if(_self.$scope.$ionicLoading) {
+              _self.$scope.$ionicLoading.hide();
+            }
             if (_callback) {
               if (_self.isOData()) {
                 if (data.d != null && data.d.result != null) {
@@ -189,6 +192,9 @@ angular.module('datasourcejs', [])
             }
           }).error(function(data, status, headers, config) {
             _self.busy = false;
+            if(_self.$scope.$ionicLoading) {
+              _self.$scope.$ionicLoading.hide();
+            }
             var msg;
             if (_self.isOData()) {
               msg = data.error.message.value;
@@ -202,6 +208,21 @@ angular.module('datasourcejs', [])
           });
 
           this.$promise.then = function(callback) {
+              if(_self.$scope.$ionicLoading) {
+                var data = (object) ? cloneObject : null;
+                for (var key in data) {
+                  if (_self.$scope.cronapi.internal.isBase64(data[key])) {
+                    _self.$scope.$ionicLoading.show({
+                      content: 'Loading',
+                      animation: 'fade-in',
+                      showBackdrop: true,
+                      maxWidth: 200,
+                      showDelay: 0
+                    });
+                    break;
+                  }
+                }
+              }
             _callback = callback;
             return this;
           }
@@ -910,7 +931,7 @@ angular.module('datasourcejs', [])
       }
     };
 
-    this.sendODataFiles = function(obj) {
+    this.sendODataFiles = function(obj, callback) {
       if (obj && this.odataFile && this.odataFile.length > 0) {
 
         var url = this.entity;
@@ -945,7 +966,11 @@ angular.module('datasourcejs', [])
               service.call(url + '/' +  of.field, 'GET', {}, false).$promise.error(function(errorMsg) {
                 Notification.error('Error send file');
               }).then(function(data, resultBool) {
-                obj[of.field] = data[of.field];
+                if (callback) {
+                  callback({ field: of.field, data: data });
+                } else {
+                  obj[of.field] = data[of.field];
+                }
               });
             }
           };
@@ -1000,10 +1025,6 @@ angular.module('datasourcejs', [])
             obj.__$id = this.active.__$id;
           }
 
-          this.sendODataFiles(obj);
-
-          this.data.push(obj);
-
           var func = function() {
             // The new object is now the active
             this.active = obj;
@@ -1017,7 +1038,7 @@ angular.module('datasourcejs', [])
 
             if (this.events.create && hotData) {
               this.callDataSourceEvents('create', this.active);
-              delete this.active.__sender;
+              delete _self.active.__sender;
             }
 
             if (this.events.memorycreate && !hotData) {
@@ -1025,13 +1046,27 @@ angular.module('datasourcejs', [])
             }
           }.bind(this);
 
-          if (this.dependentData && !this.dependentLazyPost && !this.batchPost) {
-            this.flushDependencies(func);
+          var proceed = function () {
+            this.data.push(obj);
+
+            if (this.dependentData && !this.dependentLazyPost && !this.batchPost) {
+              this.flushDependencies(func);
+            } else {
+              func();
+            }
+          }.bind(this);
+
+          if (this.odataFile && this.odataFile.length > 0) {
+            this.sendODataFiles(obj, function (result) {
+              obj[result.field] = result.data[result.field];
+
+              proceed();
+            });
           } else {
-            func();
+            this.sendODataFiles(obj);
+
+            proceed();
           }
-
-
         }.bind(this), onError);
 
       } else if (this.editing) {
@@ -1109,6 +1144,16 @@ angular.module('datasourcejs', [])
             func();
           }
         }.bind(this), onError);
+      } else {
+        if (this.data.length == 0) {
+          this.startInserting(this.active, function() {
+            this.post(onSuccess, onError, silent);
+          }.bind(this));
+        } else {
+          this.startEditing(null, function() {
+            this.post(onSuccess, onError, silent);
+          }.bind(this));
+        }
       }
     };
 
@@ -1130,13 +1175,18 @@ angular.module('datasourcejs', [])
       if (this.isOData()) {
         suffixPath = "(";
       }
+      var count = 0;
       for (var key in keyObj) {
         if (keyObj.hasOwnProperty(key)) {
           if (this.isOData()) {
+            if (count > 0) {
+              suffixPath += ",";
+            }
             suffixPath += key + "=" + this.getObjectAsString(keyObj[key]);
           } else {
             suffixPath += "/" + keyObj[key];
           }
+          count++;
         }
       }
       if (this.isOData()) {
@@ -1491,6 +1541,10 @@ angular.module('datasourcejs', [])
         this.active = this.copy(item);
         this.lastActive = item;
       } else {
+        if (this.data.length == 0) {
+          this.startInserting(null, callback);
+          return;
+        }
         this.lastActive = this.active;
         this.active = this.copy(this.active);
       }
@@ -2414,6 +2468,10 @@ angular.module('datasourcejs', [])
       return result;
     }.bind(this);
 
+    this.isEmpty = function(value) {
+      return value === '' || value === undefined || value === null || value === '\'\'' || value === 'null';
+    }
+
     this.parserOdata = function (data, strategy, resultData) {
       var result = '';
       var operation = data.type;
@@ -2431,13 +2489,13 @@ angular.module('datasourcejs', [])
 
             var value = this.parserOdata(arg, strategy)
 
-            if ((value == '\'\'' || value == 'null' || value == '') && (strategy == 'ignore' || strategy == 'clean')) {
+            if (this.isEmpty(value) && (strategy == 'ignore' || strategy == 'clean')) {
               if (resultData) {
                 resultData.clean = (strategy == 'clean');
               }
             } else {
 
-              if (value != '' && value != undefined && value != null) {
+              if (!this.isEmpty(value)) {
                 if (result != '') {
                   result += ' ' + oper.toLowerCase() + ' ';
                 }
@@ -2448,17 +2506,21 @@ angular.module('datasourcejs', [])
           } else {
             var value = executeRight(arg.right);
 
-            if ((value == '\'\'' || value == 'null' || value == '') && (strategy == 'ignore' || strategy == 'clean')) {
+            if (this.isEmpty(value) && (strategy == 'ignore' || strategy == 'clean')) {
               if (resultData) {
                 resultData.clean = (strategy == 'clean');
               }
             } else {
-              if (value != '' && value != undefined && value != null) {
+              if (!this.isEmpty(value)) {
                 if (result != '') {
                   result += ' ' + oper.toLowerCase() + ' ';
                 }
 
-                result += arg.left + getOperatorODATA(arg.type) + value;
+                if (arg.type == '%') {
+                  result += "substringof("+value.toLowerCase()+", tolower("+arg.left+"))";
+                } else {
+                  result += arg.left + getOperatorODATA(arg.type) + value;
+                }
               }
             }
           }
@@ -2601,27 +2663,44 @@ angular.module('datasourcejs', [])
           this.loadedFinish = true;
           this.handleAfterCallBack(this.onAfterFill);
           var thisDatasourceName = this.name;
-          $('datasource').each(function(idx, elem) {
-            var dependentBy = null;
-            var dependent = window[elem.getAttribute('name')];
-            if (dependent && elem.getAttribute('dependent-by') !== "" && elem.getAttribute('dependent-by') != null) {
-              try {
-                dependentBy = JSON.parse(elem.getAttribute('dependent-by'));
-              } catch (ex) {
-                dependentBy = eval(elem.getAttribute('dependent-by'));
-              }
-
-              if (dependentBy) {
-                if (dependentBy.name == thisDatasourceName) {
-                  if (!dependent.filterURL)
-                    eval(dependent.name).fetch();
-                  //if has filter, the filter observer will be called
+          if (!this.isOData()) {
+            $('datasource').each(function (idx, elem) {
+              var dependentBy = null;
+              var dependent = window[elem.getAttribute('name')];
+              if (dependent && elem.getAttribute('dependent-by')
+                  !== "" && elem.getAttribute('dependent-by')
+                  != null) {
+                try {
+                  dependentBy = JSON.parse(
+                      elem.getAttribute('dependent-by'));
+                } catch (ex) {
+                  dependentBy = eval(
+                      elem.getAttribute('dependent-by'));
                 }
-              } else {
-                console.log('O dependente ' + elem.getAttribute('dependent-by') + ' do pai ' + thisDatasourceName + ' ainda não existe.')
+
+                if (dependentBy) {
+                  if (dependentBy.name == thisDatasourceName) {
+                    if (!dependent.filterURL)
+                      eval(dependent.name).fetch();
+                    //if has filter, the filter observer will be called
+                  }
+                } else {
+                  console.log('O dependente ' + elem.getAttribute(
+                      'dependent-by') + ' do pai '
+                      + thisDatasourceName + ' ainda não existe.')
+                }
               }
-            }
-          });
+            });
+          }
+        }
+        if (this.startMode == 'insert') {
+          this.startMode = null;
+          this.startInserting();
+        }
+
+        if (this.startMode == 'edit') {
+          this.startMode = null;
+          this.startEditing();
         }
       }.bind(this);
 
@@ -2682,7 +2761,7 @@ angular.module('datasourcejs', [])
             var filterClause;
 
             var g = DEP_PATTERN.exec(binaryExpression[1]);
-            if ((!binary[1] || binary[1] == "''") && this.dependentLazyPost && g[1] && g[1].startsWith(this.dependentLazyPost+".")) {
+            if (this.isEmpty(binary[1]) && this.dependentLazyPost && g[1] && g[1].startsWith(this.dependentLazyPost+".")) {
               if (this.parametersNullStrategy == "clean" || this.parametersNullStrategy == "default") {
                 cleanData = true;
                 var dds = eval(this.dependentLazyPost);
@@ -2693,7 +2772,7 @@ angular.module('datasourcejs', [])
                 }
               }
             } else {
-              if (!binary[1] || binary[1] == "''") {
+              if (this.isEmpty(binary[1])) {
                 if (this.parametersNullStrategy == "clean" || this.parametersNullStrategy == "default") {
                   filterClause = 'null';
                   cleanData = true;
@@ -2752,11 +2831,13 @@ angular.module('datasourcejs', [])
               for (var i=0;i<obj.params.length;i++) {
                 var value = obj.params[i].fieldValue;
 
-                if (value.length > 2 && value.charAt(0) == "'" && value.charAt(value.length-1) == "'") {
+                if (value.length >= 2 && value.charAt(0) == "'" && value.charAt(value.length-1) == "'") {
                   value = value.substring(1, value.length-1);
                 }
 
-                props.params[obj.params[i].fieldName] = value;
+                if (value !== '' && value !== undefined && value !== null) {
+                  props.params[obj.params[i].fieldName] = value;
+                }
               }
             }
           } else {
@@ -3163,6 +3244,9 @@ angular.module('datasourcejs', [])
 
         if (window.dataSourceMap && window.dataSourceMap[dts.entity]) {
           dts.entity = window.dataSourceMap[dts.entity].serviceUrlODATA || window.dataSourceMap[dts.entity].serviceUrl;
+          if(dts.entity.charAt(0) === "/"){
+            dts.entity = dts.entity.substr(1);
+          }
         }
 
         if (app && app.config && app.config.datasourceApiVersion) {
@@ -3255,14 +3339,6 @@ angular.module('datasourcejs', [])
               if (data && data.length > 0) {
                 this.active = data[0];
                 this.cursor = 0;
-              }
-
-              if (this.startMode == 'insert') {
-                this.startInserting();
-              }
-
-              if (this.startMode == 'edit') {
-                this.startEditing();
               }
             }
           });
@@ -3379,7 +3455,13 @@ angular.module('datasourcejs', [])
                     } else {
                       urlParameters = "";
                     }
-                    urlParameters += key[1]+"="+value;
+                    if (!isNaN(value)) {
+                      urlParameters += key[1]+"="+value;
+                    } else {
+                      urlParameters += key[1]+"='"+value+"'";
+                    }
+
+
                   }
                 }
 
@@ -3521,7 +3603,10 @@ angular.module('datasourcejs', [])
           datasource.entity = value;
 
           if (window.dataSourceMap && window.dataSourceMap[datasource.entity]) {
-            datasource.entity = window.dataSourceMap[datasource.entity].serviceUrlODATA || window.dataSourceMap[datasource.entity].serviceUrl;;
+            datasource.entity = window.dataSourceMap[datasource.entity].serviceUrlODATA || window.dataSourceMap[datasource.entity].serviceUrl;
+            if(datasource.entity.charAt(0) === "/"){
+              datasource.entity = datasource.entity.substr(1);
+            }
           }
 
           if (!firstLoad.entity) {
