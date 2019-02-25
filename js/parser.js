@@ -448,19 +448,21 @@
     throw new Error("Unable to copy obj! Its type isn't supported.");
   }
 
-  window.getOperatorODATA = function(operator) {
-    if (operator == '=') {
-      return ' eq ';
+  window.getOperatorODATA = function(left, operator, right) {
+    if (operator == '%') {
+      return 'substringof(' + right + ', ' + left + ')';
+    } else if (operator == '=') {
+      return left + ' eq ' + right;
     } else if (operator == '!=') {
-      return ' ne ';
+      return left + ' ne ' + right;
     } else if (operator == '>') {
-      return ' gt ';
+      return left + ' gt ' + right;
     } else if (operator == '>=') {
-      return ' ge ';
+      return left + ' ge ' + right;
     } else if (operator == '<') {
-      return ' lt ';
+      return left + ' lt ' + right;
     } else if (operator == '<=') {
-      return ' le ';
+      return left + ' le ' + right;
     }
   }
 
@@ -501,7 +503,7 @@
         if (arg.args && arg.args.length > 0) {
           result = result + ' ' + oper.toLowerCase() + ' ( ' + parserOdata(arg) + ' ) ';
         } else {
-          result = result + ' ' + oper.toLowerCase() + ' ' + arg.left + getOperatorODATA(arg.type) + executeRight(arg.right);
+          result = result + ' ' + oper.toLowerCase() + ' ' + getOperatorODATA(arg.left, arg.type, executeRight(arg.right));
         }
       }
     }
