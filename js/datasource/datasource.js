@@ -156,11 +156,12 @@ angular.module('datasourcejs', [])
           delete cloneObject.__fromMemory;
 
           // Get an ajax promise
-          this.$promise = $http({
+          this.$promise = _self.getService(verb)({
             method: verb,
             url: _self.removeSlash(((window.hostApp || "") + url)),
             data: (object) ? JSON.stringify(cloneObject) : null,
-            headers: _self.headers
+            headers: _self.headers,
+            rawData: (object) ? cloneObject : null
           }).success(function(data, status, headers, config) {
             _self.busy = false;
             if(_self.$scope.$ionicLoading) {
@@ -208,21 +209,21 @@ angular.module('datasourcejs', [])
           });
 
           this.$promise.then = function(callback) {
-              if(_self.$scope.$ionicLoading) {
-                var data = (object) ? cloneObject : null;
-                for (var key in data) {
-                  if (_self.$scope.cronapi.internal.isBase64(data[key])) {
-                    _self.$scope.$ionicLoading.show({
-                      content: 'Loading',
-                      animation: 'fade-in',
-                      showBackdrop: true,
-                      maxWidth: 200,
-                      showDelay: 0
-                    });
-                    break;
-                  }
+            if(_self.$scope.$ionicLoading) {
+              var data = (object) ? cloneObject : null;
+              for (var key in data) {
+                if (_self.$scope.cronapi.internal.isBase64(data[key])) {
+                  _self.$scope.$ionicLoading.show({
+                    content: 'Loading',
+                    animation: 'fade-in',
+                    showBackdrop: true,
+                    maxWidth: 200,
+                    showDelay: 0
+                  });
+                  break;
                 }
               }
+            }
             _callback = callback;
             return this;
           }
@@ -233,6 +234,56 @@ angular.module('datasourcejs', [])
           }
           return this;
         }
+      }
+
+      this.getService = function(verb) {
+        var event = eval("this.on"+verb);
+
+        if (event) {
+          return function(properties) {
+            var promise = {
+              properties: properties,
+              successCallback: null,
+              errorCallback: null,
+              success: function(successCallback) {
+                this.successCallback = successCallback;
+                return this;
+              },
+
+              error: function(errorCallback) {
+                this.errorCallback = errorCallback;
+                return this;
+              }
+            };
+
+            $timeout(function() {
+              var contextVars = {
+                'currentData': this.properties.rawData||this.properties.data,
+                'filter': this.properties.filter||"",
+                'datasource': _self,
+                'selectedIndex': _self.cursor,
+                'index': _self.cursor,
+                'selectedRow': _self.active,
+                'item': _self.active,
+                'selectedKeys': _self.getKeyValues(_self.active, true),
+                'selectedKey': _self.getFirstKeyValue(_self.active, true),
+                'callback': this.successCallback
+              };
+
+              var result = _self.$scope.$eval(event, contextVars);
+
+              if (result) {
+                this.successCallback(result);
+              }
+
+            }.bind(promise),0);
+
+            return promise;
+          }
+
+        }
+
+        return $http;
       }
 
       /**
@@ -253,7 +304,7 @@ angular.module('datasourcejs', [])
         return "[Datasource]"
       }
 
-      this.handleAfterCallBack = function(callBackFunction) {
+      this.handleAfterCallBack = function(callBackFunction, callback) {
         if (callBackFunction) {
           try {
 
@@ -264,7 +315,9 @@ angular.module('datasourcejs', [])
               'index': this.cursor,
               'selectedRow': this.active,
               'item': this.active,
-              'selectedKeys': this.getKeyValues(this.active, true)
+              'selectedKeys': this.getKeyValues(this.active, true),
+              'selectedKey': this.getFirstKeyValue(_self.active, true),
+              'callback': callback
             };
 
             this.$scope.$eval(callBackFunction, contextVars);
@@ -274,7 +327,7 @@ angular.module('datasourcejs', [])
         }
       }
 
-      this.handleBeforeCallBack = function(callBackFunction) {
+      this.handleBeforeCallBack = function(callBackFunction, callback) {
         var isValid = true;
         if (callBackFunction) {
           try {
@@ -285,7 +338,9 @@ angular.module('datasourcejs', [])
               'index': this.cursor,
               'selectedRow': this.active,
               'item': this.active,
-              'selectedKeys': this.getKeyValues(this.active, true)
+              'selectedKeys': this.getKeyValues(this.active, true),
+              'selectedKey': this.getFirstKeyValue(_self.active, true),
+              'callback': callback
             };
 
             this.$scope.$eval(callBackFunction, contextVars);
@@ -1237,7 +1292,7 @@ angular.module('datasourcejs', [])
         var url = this.getEditionURL(this.active);
         var keyObj = this.getKeyValues(this.active);
 
-        this.$promise = $http({
+        this.$promise = this.getService("GET")({
           method: "GET",
           url: url,
           headers: this.headers
@@ -1438,8 +1493,17 @@ angular.module('datasourcejs', [])
 
 
     this.retrieveDefaultValues = function(obj, callback) {
-      if (obj) {
-        this.active = obj;
+      if (this.isEventData()) {
+        this.$scope.safeApply(function() {
+
+          this.active = {};
+          this.updateWithParams();
+          if (callback) {
+            callback();
+          }
+        }.bind(this))
+      } else if (obj) {
+        this.active = obj||{};
         this.updateWithParams();
         if (callback) {
           callback();
@@ -1451,7 +1515,7 @@ angular.module('datasourcejs', [])
           url += (this.entity.endsWith('/')) ? '__new__' : '/__new__';
           this.$promise = $http({
             method: "GET",
-            url: this.removeSlash(url),
+            url: this.removeSlash((window.hostApp || "") + url),
             headers: this.headers
           }).success(function (data, status, headers, config) {
             if (this.isOData()) {
@@ -1699,6 +1763,23 @@ angular.module('datasourcejs', [])
       }
 
       return keyValues;
+    }.bind(this);
+
+    this.getFirstKeyValue = function(rowData, forceOriginalKeys) {
+      var keys = this.keys;
+
+      var keyValues = {};
+      for (var i = 0; i < this.keys.length; i++) {
+        var key = this.keys[i];
+        var rowKey = null;
+        try {
+          rowKey = eval("rowData."+key);
+        } catch(e){
+          //
+        }
+        return rowKey;
+      }
+
     }.bind(this);
 
     /**
@@ -2072,6 +2153,10 @@ angular.module('datasourcejs', [])
       return this.entity.indexOf('odata') > 0;
     }
 
+    this.isEventData = function() {
+      return this.onGET !== undefined && this.onGET !== null && this.onGET !== '';
+    }
+
     this.normalizeValue = function(value, unquote) {
       if (unquote == null || unquote == undefined) {
         unquote = false;
@@ -2429,7 +2514,7 @@ angular.module('datasourcejs', [])
       return filter;
     }.bind(this);
 
-    var getOperatorODATA = function(operator) {
+    var getQueryOperator = function(operator) {
       if (operator == '=') {
         return ' eq ';
       } else if (operator == '!=') {
@@ -2472,7 +2557,7 @@ angular.module('datasourcejs', [])
       return value === '' || value === undefined || value === null || value === '\'\'' || value === 'null';
     }
 
-    this.parserOdata = function (data, strategy, resultData) {
+    this.parserCondition = function (data, strategy, resultData) {
       var result = '';
       var operation = data.type;
 
@@ -2487,7 +2572,7 @@ angular.module('datasourcejs', [])
 
           if (arg.args && arg.args.length > 0) {
 
-            var value = this.parserOdata(arg, strategy)
+            var value = this.parserCondition(arg, strategy)
 
             if (this.isEmpty(value) && (strategy == 'ignore' || strategy == 'clean')) {
               if (resultData) {
@@ -2519,7 +2604,7 @@ angular.module('datasourcejs', [])
                 if (arg.type == '%') {
                   result += "substringof("+value.toLowerCase()+", tolower("+arg.left+"))";
                 } else {
-                  result += arg.left + getOperatorODATA(arg.type) + value;
+                  result += arg.left + getQueryOperator(arg.type) + value;
                 }
               }
             }
@@ -2783,7 +2868,7 @@ angular.module('datasourcejs', [])
             }
 
             if (filterClause) {
-              filterClause = binary[0] + (this.isOData()?" eq ":"=") + filterClause;
+              filterClause = binary[0] + getQueryOperator("=") + filterClause;
 
               if (filter != "") {
                 filter += this.isOData()?" and ":";";
@@ -2818,9 +2903,9 @@ angular.module('datasourcejs', [])
           if (typeof obj === 'object') {
             var resultData = {};
             if (obj.expression) {
-              this.conditionOdata = this.parserOdata(obj.expression, this.parametersNullStrategy, resultData);
+              this.conditionOdata = this.parserCondition(obj.expression, this.parametersNullStrategy, resultData);
             } else {
-              this.conditionOdata = this.parserOdata(obj, this.parametersNullStrategy, resultData);
+              this.conditionOdata = this.parserCondition(obj, this.parametersNullStrategy, resultData);
             }
 
             if (!cleanData && resultData.clean) {
@@ -3010,18 +3095,23 @@ angular.module('datasourcejs', [])
       this.busy = true;
 
       // Get an ajax promise
-      this.$promise = $http({
+      this.$promise = this.getService("GET")({
         method: "GET",
         url: this.removeSlash(resourceURL),
         params: props.params,
-        headers: this.headers
+        headers: this.headers,
+        filter: filter
       }).success(function(data, status, headers, config) {
         if (localSuccess) {
           localSuccess();
         }
         this.lastFilter = filter;
         this.busy = false;
-        sucessHandler(data, headers())
+        if (headers) {
+          sucessHandler(data, headers());
+        } else {
+          sucessHandler(data, null);
+        }
       }.bind(this)).error(function(data, status, headers, config) {
         this.busy = false;
         this.handleError(data);
@@ -3273,6 +3363,10 @@ angular.module('datasourcejs', [])
         dts.onAfterUpdate = props.onAfterUpdate;
         dts.onBeforeDelete = props.onBeforeDelete;
         dts.onAfterDelete = props.onAfterDelete;
+        dts.onGET = props.onGet,
+        dts.onPOST = props.onPost,
+        dts.onPUT = props.onPut,
+        dts.onDELETE = props.onDelete,
         dts.dependentBy = props.dependentBy;
         dts.parameters = props.parameters;
         dts.parametersNullStrategy = props.parametersNullStrategy;
@@ -3417,6 +3511,10 @@ angular.module('datasourcejs', [])
           onAfterUpdate: attrs.onAfterUpdate,
           onBeforeDelete: attrs.onBeforeDelete,
           onAfterDelete: attrs.onAfterDelete,
+          onGet: attrs.onGet,
+          onPost: attrs.onPost,
+          onPut: attrs.onPut,
+          onDelete: attrs.onDelete,
           defaultNotSpecifiedErrorMessage: $translate.instant('General.ErrorNotSpecified'),
           dependentBy: attrs.dependentBy,
           dependentLazyPost: attrs.dependentLazyPost,
