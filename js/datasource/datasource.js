@@ -154,6 +154,14 @@ angular.module('datasourcejs', [])
           delete cloneObject.__parentId;
           delete cloneObject.$$hashKey;
           delete cloneObject.__fromMemory;
+          delete cloneObject.__odatafiles;
+
+          for (var key in cloneObject) {
+            if (key.indexOf('__odataFile_') > -1) {
+              cloneObject[key.replace('__odataFile_','')] = undefined;
+              delete cloneObject[key];
+            }
+          }
 
           // Get an ajax promise
           this.$promise = _self.getService(verb)({
@@ -571,6 +579,7 @@ angular.module('datasourcejs', [])
       delete data[idx].__status;
       delete data[idx].__original;
       delete data[idx].__originalIdx;
+      delete data[idx].__odatafiles;
     }
 
     this.cleanDependentBuffer = function() {
@@ -787,11 +796,14 @@ angular.module('datasourcejs', [])
 
           if (item.__status == "inserted") {
             (function (oldObj) {
+              var odataFiles = _self.processODataFiles(oldObj);
               _self.insert(oldObj, function (newObj) {
                 var sender = oldObj.__sender;
                 var idx = _self.getIndexOfListTempBuffer(oldObj, array);
                 var isFromMemory = false;
+                var currentObj = newObj;
                 if (idx >= 0) {
+                  currentObj = array[idx];
                   isFromMemory = array[idx].__fromMemory;
                   _self.updateObjectAtIndex(newObj, array, idx);
                 }
@@ -803,7 +815,16 @@ angular.module('datasourcejs', [])
                   _self.callDataSourceEvents('create', newObj);
                   delete newObj.__sender;
                 }
-                resolve();
+
+                if (odataFiles && odataFiles.length > 0) {
+                  _self.sendODataFiles(odataFiles, newObj, function (result) {
+                    currentObj[result.field] = result.data[result.field];
+                  }, function() {
+                    resolve();
+                  });
+                } else {
+                  resolve();
+                }
               }, function () {
                 resolve();
               }, true);
@@ -812,11 +833,14 @@ angular.module('datasourcejs', [])
 
           else if (item.__status == "updated") {
             (function (oldObj) {
+              var odataFiles = _self.processODataFiles(oldObj);
               _self.update(oldObj, function (newObj) {
                 var sender = oldObj.__sender;
                 var idx = _self.getIndexOfListTempBuffer(oldObj, array);
                 var isFromMemory = false;
+                var currentObj = newObj;
                 if (idx >= 0) {
+                  currentObj = array[idx];
                   isFromMemory = array[idx].__fromMemory;
                   _self.updateObjectAtIndex(newObj, array, idx);
                   newObj = array[idx];
@@ -828,7 +852,15 @@ angular.module('datasourcejs', [])
                   _self.callDataSourceEvents('update', newObj);
                   delete newObj.__sender;
                 }
-                resolve();
+                if (odataFiles && odataFiles.length > 0) {
+                  _self.sendODataFiles(odataFiles, newObj, function (result) {
+                    currentObj[result.field] = result.data[result.field];
+                  }, function() {
+                    resolve();
+                  });
+                } else {
+                  resolve();
+                }
               }, function () {
                 resolve();
               }, true);
@@ -970,24 +1002,27 @@ angular.module('datasourcejs', [])
       }
     }
 
-    this.getODataFiles = function() {
-      this.odataFile = [];
-      for (var key in this.active) {
+    this.processODataFiles = function(array) {
+      var odataFile = [];
+
+      for (var key in array) {
         if (key.indexOf('__odataFile_') > -1) {
 
           var odataFileObj = {
             field: key.replace('__odataFile_',''),
-            value: this.active[key]
+            value: array[key]
           }
-          this.odataFile.push(odataFileObj);
-          this.active[odataFileObj.field] = undefined;
-          delete this.active[key];
+          odataFile.push(odataFileObj);
+          array[odataFileObj.field] = undefined;
+          delete array[key];
         }
       }
+
+      return odataFile;
     };
 
-    this.sendODataFiles = function(obj, callback) {
-      if (obj && this.odataFile && this.odataFile.length > 0) {
+    this.sendODataFiles = function(odataFile, obj, callback, afterUpdate) {
+      if (obj && odataFile && odataFile.length > 0) {
 
         var url = this.entity;
         var keysValues = this.getKeyValues(obj);
@@ -1005,7 +1040,8 @@ angular.module('datasourcejs', [])
         url += keysFilter.join('');
 
         var _u = JSON.parse(localStorage.getItem('_u'));
-        this.odataFile.forEach(function(of) {
+
+        reduce(odataFile, function (of, resolve) {
 
           var file = of.value;
           var xhr = new XMLHttpRequest;
@@ -1026,13 +1062,23 @@ angular.module('datasourcejs', [])
                 } else {
                   obj[of.field] = data[of.field];
                 }
+
+                resolve();
               });
             }
           };
 
           xhr.send(file);
-        });
-        this.odataFile = [];
+
+        }.bind(this), function() {
+          if (afterUpdate) {
+            afterUpdate();
+          }
+        }.bind(this));
+      } else {
+        if (afterUpdate) {
+          afterUpdate();
+        }
       }
     };
 
@@ -1063,8 +1109,6 @@ angular.module('datasourcejs', [])
       this.lastAction = "post"; //TRM
 
       this.busy = true;
-
-      this.getODataFiles();
 
       if (this.inserting) {
         // Make a new request to persist the new item
@@ -1111,22 +1155,34 @@ angular.module('datasourcejs', [])
             }
           }.bind(this);
 
-          if (this.odataFile && this.odataFile.length > 0) {
-            this.sendODataFiles(obj, function (result) {
-              obj[result.field] = result.data[result.field];
-
-              proceed();
-            });
-          } else {
-            this.sendODataFiles(obj);
-
+          if (!hotData) {
             proceed();
+          } else {
+            var odataFiles = this.processODataFiles(this.active);
+
+            if (odataFiles && odataFiles.length > 0) {
+              this.sendODataFiles(odataFiles, obj, function (result) {
+                obj[result.field] = result.data[result.field];
+              }.bind(this), function() {
+                proceed()
+              }.bind(this));
+            } else {
+              proceed();
+            }
           }
         }.bind(this), onError);
 
       } else if (this.editing) {
         // Make a new request to update the modified item
         this.update(this.active, function(obj, hotData) {
+
+          var odataFiles;
+
+          if (hotData) {
+            odataFiles = this.processODataFiles(this.active);
+          }
+
+          var foundRow;
           // Get the list of keys
           var keyObj = this.getKeyValues(this.lastActive);
 
@@ -1152,6 +1208,7 @@ angular.module('datasourcejs', [])
             }
 
             if (found) {
+              foundRow = currentRow;
               var lastActive = {};
               this.copy(this.lastActive, lastActive);
               this.copy(obj, currentRow);
@@ -1183,13 +1240,30 @@ angular.module('datasourcejs', [])
             }
           }.bind(this));
 
-          this.sendODataFiles(this.active);
-
-          var func = function() {
+          var back = function() {
             this.onBackNomalState();
 
             if (onSuccess) {
               onSuccess(this.active);
+            }
+          }.bind(this);
+
+          var func = function() {
+            if (!hotData) {
+              back();
+            } else {
+              if (odataFiles && odataFiles.length > 0) {
+                this.sendODataFiles(odataFiles, foundRow, function (result) {
+                  foundRow[result.field] = result.data[result.field];
+                }.bind(this), function() {
+                  if (this.events.update && hotData) {
+                    this.callDataSourceEvents('update', foundRow);
+                  }
+                  back();
+                }.bind(this));
+              } else {
+                back();
+              }
             }
           }.bind(this);
 
@@ -1210,6 +1284,51 @@ angular.module('datasourcejs', [])
           }.bind(this));
         }
       }
+    };
+
+    this.notifyPendingChanges = function(value) {
+      console.log("notifyPendingChanges : " + value);
+      if (this.events.pendingchanges) {
+        this.callDataSourceEvents('pendingchanges', value);
+      }
+
+      if (this.dependentLazyPost) {
+        eval(this.dependentLazyPost).notifyPendingChanges(value);
+      }
+    }
+
+    this.getDeletionURL = function(obj, forceOriginalKeys) {
+      var keyObj = this.getKeyValues(obj.__original?obj.__original:obj, forceOriginalKeys);
+
+      var suffixPath = "";
+      if (this.isOData()) {
+        suffixPath = "(";
+      }
+      var count = 0;
+      for (var key in keyObj) {
+        if (keyObj.hasOwnProperty(key)) {
+          if (this.isOData()) {
+            if (count > 0) {
+              suffixPath += ",";
+            }
+            suffixPath += key + "=" + this.getObjectAsString(keyObj[key]);
+          } else {
+            suffixPath += "/" + keyObj[key];
+          }
+          count++;
+        }
+      }
+      if (this.isOData()) {
+        suffixPath += ")";
+      }
+
+      var url = this.entity;
+
+      if (this.entity.endsWith('/')) {
+        url = url.substring(0, url.length-1);
+      }
+
+      return url + suffixPath;
     };
 
     this.notifyPendingChanges = function(value) {
