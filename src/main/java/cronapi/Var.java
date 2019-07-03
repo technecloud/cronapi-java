@@ -833,8 +833,10 @@ public class Var implements Comparable<Var>, JsonSerializable {
    */
   public int size() {
     switch (getType()) {
+      case NULL:
+        return 0;
       case LIST: {
-        return ((LinkedList<Var>) getObject()).size();
+        return ((List) getObject()).size();
       }
       default: {
         if (getObject() instanceof Map) {
@@ -845,7 +847,7 @@ public class Var implements Comparable<Var>, JsonSerializable {
       }
     }
 
-    return 0;
+    return getObjectAsString().length();
   }
 
   public int length() {
@@ -1238,7 +1240,7 @@ public class Var implements Comparable<Var>, JsonSerializable {
   }
 
   public Boolean isNull() {
-    return (_object == null);
+    return (_object == null) || (_object instanceof JsonNull);
   }
 
   public Boolean isEmpty() {
