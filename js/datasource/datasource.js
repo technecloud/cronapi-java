@@ -968,21 +968,35 @@ angular.module('datasourcejs', [])
     };
 
     /**
+     * Always valid if input has pattern
+     */
+
+    this.hasPattern = function(){
+      return $('input[ng-model*="' + this.name + '."]').attr("pattern");
+    };
+
+    /**
      * Valid if required field is valid
      */
     this.missingRequiredField = function() {
+      if(this.hasPattern()){
+        return false;
+      }
       if (this.checkRequired) {
         return $('[required][ng-model*="' + this.name + '."]').hasClass('ng-invalid-required') || $('[ng-model*="' + this.name + '."]').hasClass('ng-invalid') ||
             $('[required][ng-model*="' + this.name + '."]').hasClass('ng-empty')  || $('[valid][ng-model*="' + this.name + '."]').hasClass('ng-empty');
       } else {
         return false;
       }
-    }
+    };
 
     /**
      * Valid is other validations like email, date and so on
      */
     this.hasInvalidField = function() {
+      if(this.hasPattern()){
+        return false;
+      }
       if (this.checkRequired) {
         return $('input[ng-model*="' + this.name + '."]:invalid').size() > 0;
       } else {
