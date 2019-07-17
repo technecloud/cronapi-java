@@ -443,15 +443,6 @@ angular.module('datasourcejs', [])
                     }
                   }.bind(this));
                 }
-
-
-                //db[call].apply(db, args).then(this.successCallback).catch(this.errorCallback);
-
-                /*   var db = _self.getIndexedDB({dbname: _self.localDBName, objectStore: _self.localDBStorage, dbversion: _self.localDBVersion, key: _self.keys[0]});
-                   db.success(this.successCallback);
-                   db.error(this.errorCallback);
-                   db[this.verb.toLowerCase()].apply(db, args);
-                   db.call();*/
               }
 
               if (result) {
