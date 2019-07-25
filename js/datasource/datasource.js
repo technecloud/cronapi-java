@@ -1132,6 +1132,25 @@ angular.module('datasourcejs', [])
       }
     };
 
+    this.validateFields = function(expression, message) {
+      var selection = $(expression);
+      if (selection.length > 0) {
+        var forId = $('label[for="'+selection.get(0).id+'"]');
+        var label = selection.get(0).id
+        if (forId.length > 0) {
+          label = forId.text();
+        }
+
+        Notification.error(message.replace("{0}", label));
+        $(selection.get(0)).addClass("ng-touched").removeClass("ng-untouched");
+        if (selection.get(0).focus) {
+          selection.get(0).focus();
+        }
+        return false;
+      }
+      return true;
+    }
+
     /**
      * Always valid if input has pattern
      */
@@ -1148,8 +1167,12 @@ angular.module('datasourcejs', [])
         return false;
       }
       if (this.checkRequired) {
-        return $('[required][ng-model*="' + this.name + '."]').hasClass('ng-invalid-required') || $('[ng-model*="' + this.name + '."]').hasClass('ng-invalid') ||
-            $('[required][ng-model*="' + this.name + '."]').hasClass('ng-empty')  || $('[valid][ng-model*="' + this.name + '."]').hasClass('ng-empty');
+        var valid = this.validateFields('[required][ng-model*="' + this.name + '."].ng-invalid-required', this.translate.instant("FieldIsRequired"));
+        valid = valid && this.validateFields('[required][ng-model*="' + this.name + '."].ng-empty', this.translate.instant("FieldIsRequired"));
+        valid = valid && this.validateFields('[valid][ng-model*="' + this.name + '."].ng-empty', this.translate.instant("FieldIsRequired"));
+        valid = valid && this.validateFields('[ng-model*="' + this.name + '."].ng-invalid', this.translate.instant("FieldIsInvalid"));
+
+        return !valid;
       } else {
         return false;
       }
@@ -3631,7 +3654,7 @@ angular.module('datasourcejs', [])
       /**
        * Initialize a new dataset
        */
-      this.initDataset = function(props, scope, $compile, $parse, $interpolate, instanceId) {
+      this.initDataset = function(props, scope, $compile, $parse, $interpolate, instanceId, translate) {
 
         var endpoint = (props.endpoint) ? props.endpoint : "";
         var dts = new DataSet(props.name, scope);
@@ -3666,6 +3689,7 @@ angular.module('datasourcejs', [])
           defaultApiVersion = app.config.datasourceApiVersion;
         }
 
+        dts.translate = translate;
         dts.apiVersion = props.apiVersion ? parseInt(props.apiVersion) : defaultApiVersion;
         dts.keys = (props.keys && props.keys.length > 0) ? props.keys.split(",") : [];
         dts.rowsPerPage = props.rowsPerPage ? props.rowsPerPage : 100; // Default 100 rows per page
@@ -3897,7 +3921,7 @@ angular.module('datasourcejs', [])
         }
 
         var instanceId =  parseInt(Math.random() * 9999);
-        var datasource = DatasetManager.initDataset(props, scope, $compile, $parse, $interpolate, instanceId);
+        var datasource = DatasetManager.initDataset(props, scope, $compile, $parse, $interpolate, instanceId, $translate);
         var timeoutPromise;
 
         attrs.$observe('filter', function(value) {
