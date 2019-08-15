@@ -1424,11 +1424,11 @@ angular.module('datasourcejs', [])
                 currentRow.__status = "updated";
                 currentRow.__original = lastActive;
                 this.hasMemoryData = true;
-                this.notifyPendingChanges(this.hasMemoryData);
                 if (this.dependentLazyPost) {
                   currentRow.__parentId = eval(this.dependentLazyPost).active.__$id;
                 }
               }
+              this.notifyPendingChanges(this.hasMemoryData);
               this.handleAfterCallBack(this.onAfterUpdate);
 
               if (this.events.update && hotData) {
