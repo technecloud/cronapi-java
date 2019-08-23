@@ -1155,7 +1155,7 @@ angular.module('datasourcejs', [])
      * Always valid if input has pattern
      */
 
-    this.hasPattern = function(){
+    this.getPatterns = function(){
       return $('input[ng-model*="' + this.name + '."]').filter(function( index ) {
         return $( this ).attr("pattern");
       });
@@ -1165,7 +1165,7 @@ angular.module('datasourcejs', [])
      * Valid if required field is valid
      */
     this.missingRequiredField = function() {
-      if(this.hasPattern().length > 0){
+      if(this.getPatterns().length > 0){
         return false;
       }
       if (this.checkRequired) {
