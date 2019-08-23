@@ -1156,14 +1156,16 @@ angular.module('datasourcejs', [])
      */
 
     this.hasPattern = function(){
-      return $('input[ng-model*="' + this.name + '."]').attr("pattern");
+      return $('input[ng-model*="' + this.name + '."]').filter(function( index ) {
+        return $( this ).attr("pattern");
+      });
     };
 
     /**
      * Valid if required field is valid
      */
     this.missingRequiredField = function() {
-      if(this.hasPattern()){
+      if(this.hasPattern().length > 0){
         return false;
       }
       if (this.checkRequired) {
