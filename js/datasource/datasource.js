@@ -2885,6 +2885,16 @@ angular.module('datasourcejs', [])
       return value === '' || value === undefined || value === null || value === '\'\'' || value === 'null';
     }
 
+    this.getFieldFromSchema = function (name) {
+      if (this.schema) {
+        for (var i = 0; i < this.schema.length; i++) {
+          if (this.schema[i].name === name)
+            return this.schema[i].type;
+        }
+      }
+      return null;
+    };
+
     this.parserCondition = function (data, strategy, resultData) {
       var result = '';
       var operation = data.type;
@@ -2925,18 +2935,39 @@ angular.module('datasourcejs', [])
               }
             } else {
               if (!this.isEmpty(value)) {
-                if (result != '') {
-                  result += ' ' + oper.toLowerCase() + ' ';
+
+                var canContinue = true;
+                var isDate = this.getFieldFromSchema(arg.left) === 'DateTime';
+                var objDateMoment = undefined;
+                if (isDate && value.indexOf('datetime') === -1) {
+                  objDateMoment = this.$scope.cronapi.dateTime.getMomentObj(value);
+                  canContinue = objDateMoment.isValid()
                 }
 
-                if (arg.type == '%') {
-                  if (this.isLocalData()) {
-                    result += "contains("+arg.left+", "+value.toLowerCase()+")";
-                  } else {
-                    result += "substringof("+value.toLowerCase()+", tolower("+arg.left+"))";
+                if (canContinue) {
+
+                  if (result != '') {
+                    result += ' ' + oper.toLowerCase() + ' ';
                   }
-                } else {
-                  result += arg.left + getQueryOperator(arg.type) + value;
+
+                  if (arg.type == '%') {
+                    if (this.isLocalData()) {
+                      result += "contains("+arg.left+", "+value.toLowerCase()+")";
+                    } else {
+                      result += "substringof("+value.toLowerCase()+", tolower("+arg.left+"))";
+                    }
+                  } else {
+                    if (objDateMoment) {
+                      var momentTimezoneOffset = objDateMoment.toDate().getTimezoneOffset();
+                      var adjustOffset = timeZoneOffset - momentTimezoneOffset;
+                      objDateMoment.add(adjustOffset, 'minutes');
+                      result += arg.left + getQueryOperator(arg.type) + "datetimeoffset'"+objDateMoment.toISOString()+"'";
+                    }
+                    else {
+                      result += arg.left + getQueryOperator(arg.type) + value;
+                    }
+                  }
+
                 }
               }
             }
