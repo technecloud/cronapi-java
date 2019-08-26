@@ -1155,15 +1155,17 @@ angular.module('datasourcejs', [])
      * Always valid if input has pattern
      */
 
-    this.hasPattern = function(){
-      return $('input[ng-model*="' + this.name + '."]').attr("pattern");
+    this.getPatterns = function(){
+      return $('input[ng-model*="' + this.name + '."]').filter(function( index ) {
+        return $( this ).attr("pattern");
+      });
     };
 
     /**
      * Valid if required field is valid
      */
     this.missingRequiredField = function() {
-      if(this.hasPattern()){
+      if(this.getPatterns().length > 0){
         return false;
       }
       if (this.checkRequired) {
@@ -1182,7 +1184,7 @@ angular.module('datasourcejs', [])
      * Valid is other validations like email, date and so on
      */
     this.hasInvalidField = function() {
-      if(this.hasPattern()){
+      if(this.getPatterns().length > 0){
         return false;
       }
       if (this.checkRequired) {
