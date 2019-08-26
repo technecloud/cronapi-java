@@ -1184,7 +1184,7 @@ angular.module('datasourcejs', [])
      * Valid is other validations like email, date and so on
      */
     this.hasInvalidField = function() {
-      if(this.hasPattern()){
+      if(this.getPatterns().length > 0){
         return false;
       }
       if (this.checkRequired) {
