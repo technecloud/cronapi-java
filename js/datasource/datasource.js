@@ -4126,11 +4126,34 @@ angular.module('datasourcejs', [])
   };
 }])
 
+app.directive('crnRepeat', function(DatasetManager, $compile, $parse) {
+  return {
+    restrict: 'A',
+    priority: 9999998,
+    terminal: true,
+    link: function(scope, element, attrs, controllers, transclude) {
+
+      if (attrs.crnRepeat) {
+        scope.data = DatasetManager.datasets;
+        if (scope.data[attrs.crnRepeat]) {
+          scope.datasourceRepeat = scope.data[attrs.crnRepeat];
+        } else {
+          scope.datasourceRepeat = {};
+          scope.datasourceRepeat.data = $parse(attrs.crnRepeat)(scope);
+        }
+        element.attr('ng-repeat', 'rowData in datasourceRepeat.data');
+
+      }
+      $compile(element, null, 9999998)(scope);
+    }
+  };
+})
+
 .directive('crnDatasource', ['DatasetManager', '$parse', '$rootScope', function(DatasetManager, $parse, $rootScope) {
   return {
     restrict: 'A',
     scope: true,
-    priority: 9999999,
+    priority: 9999998,
     link: function(scope, element, attrs) {
       scope.data = DatasetManager.datasets;
       if (scope.data[attrs.crnDatasource]) {
