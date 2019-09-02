@@ -4126,7 +4126,7 @@ angular.module('datasourcejs', [])
   };
 }])
 
-app.directive('crnRepeat', function(DatasetManager, $compile, $parse) {
+app.directive('crnRepeat', function(DatasetManager, $compile, $parse, $injector, $rootScope) {
   return {
     restrict: 'A',
     priority: 9999998,
@@ -4144,7 +4144,16 @@ app.directive('crnRepeat', function(DatasetManager, $compile, $parse) {
         element.attr('ng-repeat', 'rowData in datasourceRepeat.data');
 
       }
+
+      var tagName = element[0].tagName;
       $compile(element, null, 9999998)(scope);
+      scope.$watchCollection('datasourceRepeat.data', function (newVal, oldVal) {
+        if (tagName.toLowerCase() == "ion-slide") {
+          var $ionicSlideBoxDelegate = $injector.get('$ionicSlideBoxDelegate');
+          $ionicSlideBoxDelegate.slide(0);
+          $ionicSlideBoxDelegate.update();
+        }
+      });
     }
   };
 })
