@@ -232,6 +232,26 @@
       <artifactId>json</artifactId>
       <version>20180813</version>
     </dependency>
+    <dependency>
+      <groupId>org.camunda.spin</groupId>
+      <artifactId>camunda-spin-core</artifactId>
+      <version>${camunda.spin.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.camunda.spin</groupId>
+      <artifactId>camunda-spin-dataformat-json-jackson</artifactId>
+      <version>${camunda.spin.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.camunda.spin</groupId>
+      <artifactId>camunda-spin-dataformat-xml-dom</artifactId>
+      <version>${camunda.spin.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.camunda.bpm</groupId>
+      <artifactId>camunda-engine-plugin-spin</artifactId>
+      <version>7.10.0</version>
+    </dependency>
 
   </dependencies>
   <distributionManagement>
@@ -249,6 +269,7 @@
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
+    <camunda.spin.version>1.6.7</camunda.spin.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <project.cronospass.resource mimetype="folder/libs">lib</project.cronospass.resource>
