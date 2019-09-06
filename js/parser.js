@@ -52,8 +52,13 @@
         return new Date(value);
       }
       else if (value.length >= 8 && value.match(TIME_PATTERN) && value.length < 100) {
+        var momentDate = moment().utcOffset(window.systemTimeZoneOffset, true);
+
         var g = TIME_PATTERN.exec(value);
-        return new Date(Date.UTC(1970, 0, 1, g[1], g[2], g[3]));
+
+        momentDate = momentDate.hour(g[1]).minute(g[2]).second(g[3]).year(1970).dayOfYear(1).month(0);
+
+        return momentDate.toDate();
       }
       else if (value.length >= 10 && value.substring(0, 6) == '/Date(' && value.substring(value.length - 2, value.length) == ")/") {
         var r = value.substring(6, value.length-2);
