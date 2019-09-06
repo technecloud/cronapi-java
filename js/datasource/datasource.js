@@ -2921,6 +2921,9 @@ angular.module('datasourcejs', [])
             } else {
 
               if (!this.isEmpty(value)) {
+                if (resultData) {
+                  resultData.count = resultData.count ? resultData.count + 1 : 1;
+                }
                 if (result != '') {
                   result += ' ' + oper.toLowerCase() + ' ';
                 }
@@ -2948,6 +2951,9 @@ angular.module('datasourcejs', [])
 
                 if (canContinue) {
 
+                  if (resultData) {
+                    resultData.count = resultData.count ? resultData.count + 1 : 1;
+                  }
                   if (result != '') {
                     result += ' ' + oper.toLowerCase() + ' ';
                   }
@@ -3279,7 +3285,18 @@ angular.module('datasourcejs', [])
               this.conditionOdata = this.parserCondition(obj, this.parametersNullStrategy, resultData);
             }
 
+            var filterCount = this.conditionExpression.match(/{{(?!null).*?}}/g).length;
+
             if (!cleanData && resultData.clean) {
+              cleanData = true;
+            }
+            if (!cleanData && this.loadDataStrategy === "one" && (!resultData.count || resultData.count < 1)) {
+              cleanData = true;
+            }
+            if (!cleanData && this.loadDataStrategy === "all" && filterCount && (!resultData.count || resultData.count < filterCount)) {
+              cleanData = true;
+            }
+            if (!cleanData && this.loadDataStrategy === "button" && fetchOptions.origin !== "button") {
               cleanData = true;
             }
 
@@ -4025,6 +4042,10 @@ angular.module('datasourcejs', [])
 
           if (datasource.condition != value) {
             datasource.condition = value;
+
+            if (datasource.loadDataStrategy === "button") {
+              return;
+            }
 
             $timeout.cancel(timeoutPromise);
             timeoutPromise =$timeout(function() {
