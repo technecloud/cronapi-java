@@ -31,8 +31,7 @@ public class Operations {
   @CronapiMetaData(type = "function", name = "{{createObjectJson}}", nameTags = {
       "createObjectJson"}, description = "{{functionToCreateObjectJson}}", returnType = ObjectType.JSON)
   public static final Var createObjectJson() throws Exception {
-    Var value = new Var(new JsonObject());
-    return value;
+    return Var.valueOf(new JsonObject());
   }
 
   @CronapiMetaData(type = "function", name = "{{deleteObjectFromJson}}", nameTags = {

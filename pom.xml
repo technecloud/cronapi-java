@@ -211,12 +211,6 @@
             <version>2.4.0</version>
         </dependency>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.cronapp</groupId>
             <artifactId>olingo-odata2-jpa-processor-core</artifactId>
             <version>2.2.7</version>
@@ -237,7 +231,20 @@
             <artifactId>json</artifactId>
             <version>20180813</version>
         </dependency>
-
+        <!-- Test dependencies inicio -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Test dependencies final -->
     </dependencies>
     <distributionManagement>
         <repository>
@@ -259,5 +266,7 @@
         <project.cronospass.resource mimetype="folder/libs">lib</project.cronospass.resource>
         <project.cronospass.resource mimetype="folder/src">src/main/java</project.cronospass.resource>
         <project.cronospass.resource mimetype="folder/src">src/test/java</project.cronospass.resource>
+        <mockito.version>3.0.0</mockito.version>
+        <junit.version>4.12</junit.version>
     </properties>
 </project>
