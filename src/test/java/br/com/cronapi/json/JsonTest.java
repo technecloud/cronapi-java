@@ -1,6 +1,7 @@
 package br.com.cronapi.json;
 
 import com.google.gson.JsonObject;
+import com.jayway.jsonpath.JsonPath;
 import cronapi.Var;
 import cronapi.database.DataSource;
 import cronapi.json.Operations;
@@ -62,12 +63,25 @@ public class JsonTest {
         retorno = Operations.getJsonOrMapField(Var.valueOf(ds),Var.valueOf("book.category"));
         Assert.assertNull(retorno.getObject());
 
-        retorno = Operations.getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("$novo.category"));
-        Assert.assertNull(retorno.getObject());
+        String json = "{\n" +
+                "   \"foo\" : \"foo\",\n" +
+                "   \"bar\" : 10,\n" +
+                "   \"baz\" : true\n" +
+                "}";
+
+        retorno = Operations.getJsonOrMapField(Var.valueOf(json), Var.valueOf("$"));
+        Assert.assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
     }
 
     @Test
-    public void testSetJsonOrMapField() {
+    public void testSetJsonOrMapField() throws Exception {
+        Var retorno = Operations.getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
+        Assert.assertEquals(retorno.getObjectAsString(), "10");
+        Operations.setJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"), Var.valueOf("11"));
+        retorno = Operations.getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
+        Assert.assertEquals(retorno.getObjectAsString(), "11");
+        Operations.setJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("store.book.category[0]"), Var.valueOf("reference 1"));
+        //Assert.assertNull(retorno.getObject());
     }
 
     @Test
@@ -88,6 +102,12 @@ public class JsonTest {
     }
     @Test
     public void testToXml() throws Exception {
-        Assert.assertTrue(toXml(booksJson).getObject() instanceof Document);
+        Assert.assertTrue(toXml(booksJsonConvert).getObject() instanceof Document);
+    }
+
+    public static class FooBarBaz {
+        public String foo;
+        public Long bar;
+        public boolean baz;
     }
 }
