@@ -162,9 +162,9 @@ public class Operations {
 	}
 
 	@CronapiMetaData(type = "function", name = "{{XMLGetChildElementName}}", nameTags = {
-			"XMLGetChildElement" }, description = "{{XMLGetChildElementDescription}}", params = {
-					"{{XMLGetChildElementParam0}}", "{{XMLGetChildElementParam1}}" }, paramsType = { ObjectType.OBJECT,
-							ObjectType.STRING }, returnType = ObjectType.LIST)
+			"XMLGetChildElement"}, description = "{{XMLGetChildElementDescription}}", params = {
+			"{{XMLGetChildElementParam0}}", "{{XMLGetChildElementParam1}}"}, paramsType = {ObjectType.OBJECT,
+			ObjectType.STRING}, returnType = ObjectType.LIST)
 	public static final Var XMLGetChildElement(Var element, Var child) throws Exception {
 		if (!element.equals(Var.VAR_NULL)) {
 			if (element.getObject() instanceof Element) {
@@ -177,17 +177,14 @@ public class Operations {
 				} else if (child.getObject() instanceof String) {
 					return new Var(elementCasted.getChildren(child.getObjectAsString()));
 				}
-			} else if (element.getObject() instanceof Document) {
-				if (child.getObject() instanceof String) {
-					Document documentCasted = (Document) element.getObject();
-					if (documentCasted.getRootElement().getName() == child.getObjectAsString()) {
-						return new Var(documentCasted.getRootElement());
-					} else {
-						return new Var(documentCasted.getRootElement().getChildren(child.getObjectAsString()));
-					}
+			} else if (element.getObject() instanceof Document && child.getObject() instanceof String) {
+				Document documentCasted = (Document) element.getObject();
+				if (documentCasted.getRootElement().getName().equalsIgnoreCase(child.getObjectAsString())) {
+					return new Var(documentCasted.getRootElement());
+				} else {
+					return new Var(documentCasted.getRootElement().getChildren(child.getObjectAsString()));
 				}
 			}
-			return Var.VAR_NULL;
 		}
 		return Var.VAR_NULL;
 	}

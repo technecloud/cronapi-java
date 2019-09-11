@@ -204,6 +204,9 @@ public class XmlTest {
         Assert.assertEquals(retorno.getObjectAsList().size(),0);
         retorno = Operations.XMLGetChildElement(Var.valueOf(((Document)xmlRetorno.getObject()).getContent(0)), Var.VAR_NULL);
         Assert.assertEquals(retorno.getObjectAsList().size(),2);
+        Var xml = Operations.newXMLEmpty();
+        retorno = Operations.XMLGetChildElement(Var.valueOf(xml), Var.VAR_NULL);
+        Assert.assertNull(retorno.getObject());
     }
 
     @Test(expected = Exception.class)
