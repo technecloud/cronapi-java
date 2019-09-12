@@ -6,7 +6,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import static cronapi.math.Operations.pow;
+import java.util.ArrayList;
+import java.util.List;
+
+import static cronapi.math.Operations.*;
 
 public class MathTest {
 
@@ -36,15 +39,23 @@ public class MathTest {
     }
 
     @Test
-    public void testMultiply() {
+    public void testMultiply() throws Exception {
+        Assert.assertEquals(multiply(Var.valueOf(Double.valueOf("5.1")), Var.valueOf(Double.valueOf("5.1"))).getObjectAsDouble(), Var.valueOf("26.009999999999998").getObjectAsDouble());
+        Assert.assertEquals(multiply(Var.valueOf(Long.valueOf("5")), Var.valueOf(Long.valueOf("5"))).getObjectAsLong(), Var.valueOf("25").getObjectAsLong());
     }
 
     @Test
-    public void testSubtract() {
+    public void testSubtract() throws Exception {
+        Assert.assertEquals(subtract(Var.valueOf(Double.valueOf("5.1")), Var.valueOf(Double.valueOf("1.1"))).getObjectAsDouble(), Var.valueOf("3.9999999999999996").getObjectAsDouble());
+        Assert.assertEquals(subtract(Var.valueOf(Long.valueOf("5")), Var.valueOf(Long.valueOf("2"))).getObjectAsLong(), Var.valueOf("3").getObjectAsLong());
+
     }
 
     @Test
-    public void testSum() {
+    public void testSum() throws Exception {
+        Assert.assertEquals(sum(Var.valueOf(Double.valueOf("5.1")), Var.valueOf(Double.valueOf("5.1"))).getObjectAsDouble(), Var.valueOf("10.2").getObjectAsDouble());
+        Assert.assertEquals(sum(Var.valueOf(Long.valueOf("5")), Var.valueOf(Long.valueOf("5"))).getObjectAsLong(), Var.valueOf("10").getObjectAsLong());
+
     }
 
     @Test

@@ -18,34 +18,30 @@ import cronapi.Var;
 public class Operations {
 
 	public static final Var multiply(Var... values) throws Exception {
-		Var result = new Var();
 		boolean isDouble = false;
 		for (Var v : values)
 			if (v.getType() == Var.Type.DOUBLE)
 				isDouble = true;
 
 		if (isDouble)
-			result = multiplyDouble(values);
+			return multiplyDouble(values);
 		else
-			result = multiplyLong(values);
-		return result;
+			return multiplyLong(values);
 	}
 
 	public static final Var subtract(Var... values) throws Exception {
-		Var result = new Var();
 		boolean isDouble = false;
 		for (Var v : values)
 			if (v.getType() == Var.Type.DOUBLE)
 				isDouble = true;
 		if (isDouble)
-			result = subtractDouble(values);
+			return subtractDouble(values);
 		else
-			result = subtractLong(values);
-		return result;
+			return subtractLong(values);
 	}
 
 	public static final Var sum(Var... values) throws Exception {
-		Var result = new Var();
+		Var result;
 		boolean isDouble = false;
 		for (Var v : values)
 			if (v.getType() == Var.Type.DOUBLE)

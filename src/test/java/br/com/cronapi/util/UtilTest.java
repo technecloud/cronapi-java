@@ -5,11 +5,6 @@ import cronapi.util.Operations;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.util.Map;
-import java.util.logging.*;
-
 public class UtilTest {
 
   @Test
