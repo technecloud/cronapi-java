@@ -1,7 +1,7 @@
 package br.com.cronapi.json;
 
 import com.google.gson.JsonObject;
-import com.jayway.jsonpath.JsonPath;
+import com.google.gson.internal.LinkedTreeMap;
 import cronapi.Var;
 import cronapi.database.DataSource;
 import cronapi.json.Operations;
@@ -14,7 +14,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.List;
 
 import static cronapi.json.Operations.toJson;
 import static cronapi.json.Operations.toXml;
@@ -80,20 +82,64 @@ public class JsonTest {
         Operations.setJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"), Var.valueOf("11"));
         retorno = Operations.getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
         Assert.assertEquals(retorno.getObjectAsString(), "11");
-        Operations.setJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("store.book.category[0]"), Var.valueOf("reference 1"));
-        //Assert.assertNull(retorno.getObject());
+        Operations.setJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("store.bicycle.color"), Var.valueOf("black"));
+        retorno = Operations.getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("store.bicycle.color"));
+        Assert.assertEquals(retorno.getObjectAsString(), "black");
+        String json = "{\n" +
+                "   \"foo\" : \"foo\",\n" +
+                "   \"bar\" : 10,\n" +
+                "   \"baz\" : true\n" +
+                "}";
+
+        retorno = Operations.getJsonOrMapField(Var.valueOf(json), Var.valueOf("$"));
+        Assert.assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
+        Operations.setJsonOrMapField(Var.valueOf(((JsonObject)retorno.getObject())),Var.valueOf("bar"), Var.valueOf("1"));
+        retorno = Operations.getJsonOrMapField(retorno,Var.valueOf("bar"));
+        Assert.assertEquals(retorno.getObjectAsString(), "1");
+    }
+
+    @Test(expected = ClassCastException.class)
+    public void testSetJsonOrMapFieldErro() throws Exception {
+        DataSource ds = Mockito.mock(DataSource.class);
+        Mockito.when(ds.getObject()).thenReturn(Mockito.mock(DataSource.class));
+        Operations.setJsonOrMapField(Var.valueOf(ds),Var.valueOf("store.bicycle.color"), Var.valueOf("2"));
     }
 
     @Test
-    public void testToJson() {
+    public void testToJson() throws Exception {
+        InputStream booksInput = getClass().getResourceAsStream("/books.json");
+        Var booksJsonNovo = toJson(Var.valueOf(IOUtils.toString(booksInput)));
+        Assert.assertTrue(booksJsonNovo.getObject() instanceof JsonObject);
     }
 
     @Test
-    public void testToList() {
+    public void testToList() throws Exception {
+        String json = "{\n" +
+                "   \"foo\" : \"foo\",\n" +
+                "   \"bar\" : 10,\n" +
+                "   \"baz\" : true\n" +
+                "}";
+        Var retorno = Operations.toList(Var.valueOf(json));
+        retorno = Operations.getJsonOrMapField(retorno, Var.valueOf("$"));
+        Assert.assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
     }
 
     @Test
-    public void testToMap() {
+    public void testToMap() throws Exception {
+        String json = "{\n" +
+                "   \"foo\" : \"foo\",\n" +
+                "   \"bar\" : 10,\n" +
+                "   \"baz\" : true\n" +
+                "}";
+        Var retorno = Operations.toMap(Var.valueOf(json));
+        retorno = Operations.getJsonOrMapField(retorno, Var.valueOf("$"));
+        Assert.assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
+        json = "[".concat(json).concat("]");
+        retorno = Operations.toMap(Var.valueOf(json));
+        Assert.assertTrue(retorno.getObject() instanceof List);
+        InputStream fileInputStream = new FileInputStream(getClass().getResource("/books.json").getPath());
+        Var booksJsonNovo = Operations.toMap(Var.valueOf(fileInputStream));
+        Assert.assertTrue(booksJsonNovo.getObject() instanceof LinkedTreeMap);
     }
 
     @Test(expected = JDOMParseException.class)

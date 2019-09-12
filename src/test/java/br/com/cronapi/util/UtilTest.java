@@ -5,8 +5,6 @@ import cronapi.util.Operations;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Map;
-
 public class UtilTest {
 
     @Test

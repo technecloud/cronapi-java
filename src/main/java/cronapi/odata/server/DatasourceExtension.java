@@ -116,9 +116,7 @@ public class DatasourceExtension implements JPAEdmExtension {
 
       List<EntityType> localEntities = new LinkedList<>();
 
-      for (EntityType type : edmSchema.getEntityTypes()) {
-        localEntities.add(type);
-      }
+      localEntities.addAll(edmSchema.getEntityTypes());
 
       List<EntitySet> queryDatasource = new LinkedList<>();
 
