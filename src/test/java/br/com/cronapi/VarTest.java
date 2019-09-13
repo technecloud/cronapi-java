@@ -107,6 +107,7 @@ public class VarTest {
 
   @Test
   public void getObjectAsStringConversion() {
+    Assert.assertEquals(new Var("12").getObjectAsString(), "12");
     Assert.assertEquals(Var.valueOf("12").getObjectAsString(), "12");
     Assert.assertEquals(Var.valueOf("value").getObjectAsString(), "value");
     Assert.assertEquals(Var.valueOf(12).getObjectAsString(), "12");
@@ -148,5 +149,28 @@ public class VarTest {
     obj.setTest("value");
 
     Assert.assertEquals(Var.valueOf(obj).getObjectAsString(), "{\"test\":\"value\"}");
+  }
+
+  @Test
+  public void getObject(){
+    Assert.assertNull(Var.valueOf(null).getObject(Var.class));
+    Assert.assertTrue(Var.valueOf("new Var()").getObject(Var.class) instanceof Var);
+    Assert.assertTrue(Var.valueOf("new Var()").getObject(String.class) instanceof String);
+    Assert.assertTrue(Var.valueOf(new StringBuilder().append("teste")).getObject(StringBuilder.class) instanceof String);
+    Assert.assertTrue(Var.valueOf(new StringBuffer().append("teste")).getObject(StringBuffer.class) instanceof String);
+    Assert.assertTrue(Var.valueOf(Character.toUpperCase('a')).getObject(Character.class) instanceof String);
+
+    Assert.assertTrue(Var.valueOf(true).getObject(Boolean.class) instanceof Boolean);
+    Assert.assertTrue(Var.valueOf(0).getObject(Boolean.class) instanceof Boolean);
+    Assert.assertTrue(Var.valueOf("1").getObject(Boolean.class) instanceof Boolean);
+    Assert.assertTrue(Var.valueOf("true").getObject(Boolean.class) instanceof Boolean);
+    Assert.assertTrue(Var.valueOf("yes").getObject(Boolean.class) instanceof Boolean);
+    Assert.assertTrue(Var.valueOf("sim").getObject(Boolean.class) instanceof Boolean);
+    Assert.assertTrue(Var.valueOf("y").getObject(Boolean.class) instanceof Boolean);
+    Assert.assertTrue(Var.valueOf("s").getObject(Boolean.class) instanceof Boolean);
+    Assert.assertTrue(Var.valueOf("t").getObject(Boolean.class) instanceof Boolean);
+    Assert.assertTrue(Var.valueOf(new Double(0)).getObject(Boolean.class) instanceof Boolean);
+    Assert.assertTrue(Var.valueOf(new Date()).getObject(Boolean.class) instanceof Boolean);
+    Assert.assertTrue(Var.valueOf(new ArrayList<>()).getObject(Boolean.class) instanceof Boolean);
   }
 }
