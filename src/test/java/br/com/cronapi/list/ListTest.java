@@ -8,6 +8,7 @@ import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.rules.Verifier;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -76,5 +77,27 @@ public class ListTest {
     Assert.assertTrue(listVar.getObject() instanceof List);
     Assert.assertEquals(Operations.size(listVar).getObjectAsInt().intValue(), 1);
   }
+
+  @Test
+  public void testSize() throws Exception {
+    Assert.assertEquals(Operations.size(Var.valueOf(null)).getObjectAsLong(), Var.valueOf(0L).getObjectAsLong());
+    Assert.assertEquals(Operations.size(Var.valueOf("teste")).getObjectAsLong(), Var.valueOf(1L).getObjectAsLong());
+    // isEmpty
+    Assert.assertFalse(Operations.isEmpty(Var.valueOf("teste")).getObjectAsBoolean());
+    Assert.assertTrue(Operations.isEmpty(Var.valueOf(null)).getObjectAsBoolean());
+  }
+
+  @Test
+  public void testNewList() throws Exception {
+    Var list = Operations.newList(Var.valueOf("1"), Var.valueOf("2"), Var.valueOf("3"));
+    Assert.assertEquals(list.getObjectAsList().size(), 3);
+  }
+
+  @Test
+  public void testNewListRepeat() throws Exception {
+    Var list = Operations.newListRepeat(Var.valueOf("1"), Var.valueOf("2"));
+    Assert.assertEquals(list.getObjectAsList().size(), 2);
+  }
+
 
 }
