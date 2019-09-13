@@ -16,31 +16,5 @@ public class DatasourceExtensionTest {
     public void tearDown() throws Exception {
     }
 
-    @Test
-    public void jpql() {
-    }
 
-    @Test
-    public void getJpqlEntity() {
-    }
-
-    @Test
-    public void extendWithOperation() {
-    }
-
-    @Test
-    public void extendJPAEdmSchema() {
-    }
-
-    @Test
-    public void testExtendJPAEdmSchema() {
-    }
-
-    @Test
-    public void createJpqlDataSource() {
-    }
-
-    @Test
-    public void getJPAEdmMappingModelStream() {
-    }
 }
