@@ -2257,15 +2257,18 @@ angular.module('datasourcejs', [])
       return this.active;
     };
 
-    /**
-     *  Moves the cursor to the specified item
-     */
-    this.goTo = function(rowId, serverQuery) {
-      var found = false;
+    this.findObjInDs = function(rowId, returnCursor) {
 
-      if (rowId == null || rowId == undefined) {
-        return null;
+      var found = false;
+      var result = null;
+
+      if (rowId === null || rowId === undefined) {
+        return result;
       }
+
+      var cursor = null;
+      var copyObj = null;
+
 
       if (typeof rowId === 'object' && rowId !== null) {
         var dataKeys;
@@ -2285,10 +2288,11 @@ angular.module('datasourcejs', [])
             }
           }
           if (found) {
-            this.cursor = i;
-            this.active = this.copy(this.data[this.cursor], {});
+            cursor = i;
 
-            var keys = this.getKeyValues(this.data[this.cursor]);
+            copyObj = this.copy(this.data[cursor], {});
+
+            var keys = this.getKeyValues(this.data[cursor]);
             var defined = true;
             for (var key in keys) {
               if (keys[key] === undefined) {
@@ -2301,23 +2305,46 @@ angular.module('datasourcejs', [])
               this.fetchChildren();
             }
 
-            return this.active;
           }
         }
       } else {
         if (Array.isArray(this.keys)) {
           for (var i = 0; i < this.data.length; i++) {
             if (this.data[i][this.keys[0]] === rowId) {
-              this.cursor = i;
-              this.active = this.copy(this.data[this.cursor], {});
+              cursor = i;
+              copyObj = this.copy(this.data[cursor], {});
               found = true
-              return this.active;
             }
           }
         }
       }
 
-      return null;
+      if (copyObj !== null) {
+        result = copyObj;
+        if (returnCursor) {
+          result = {
+            cursor: cursor,
+            obj: copyObj
+          };
+        }
+      }
+
+      return result;
+
+    };
+
+    /**
+     *  Moves the cursor to the specified item
+     */
+    this.goTo = function(rowId, serverQuery) {
+
+      var result = this.findObjInDs(rowId, true);
+      if (result !== null) {
+        this.cursor = result.cursor;
+        this.active = result.obj;
+        return this.active;
+      }
+      return result;
     };
 
     /**
