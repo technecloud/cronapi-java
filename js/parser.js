@@ -1,5 +1,105 @@
 (function() {
 
+  var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
+  var TIME_PATTERN  = new RegExp("^PT(?:(\\d\\d?)H)?(?:(\\d\\d?)M)?(?:(\\d\\d?)(?:\\.(\\d\\d?\\d?)?)?S)?$");
+
+  window.stringToJs = function(value) {
+    var formated = "";
+
+    if (value != undefined && value != null) {
+      value = value.toString();
+      for (var i = 0; i < value.length; i++) {
+        var c = value.charAt(i);
+        if (c == "\\") {
+          formated += "\\\\";
+        } else if (c == "'") {
+          formated += "\\'";
+        } else if (c == "\"") {
+          formated += "\\\"";
+        } else if (c == "\n") {
+          formated += "\\n";
+        } else if (c == "\r") {
+        } else {
+          formated += c;
+        }
+      }
+    }
+
+    return formated;
+  }
+
+  window.objToOData = function(o) {
+    if (o == null || o == undefined) {
+      return "null";
+    }
+    else if (typeof o == 'number' || typeof o == 'boolean') {
+      return o+"";
+    }
+    else if (o instanceof Date) {
+      return "datetimeoffset'"+o.toISOString()+"'";
+    }
+
+    return "'"+o+"'";
+  }
+
+  window.oDataToObj = function(value, unquote) {
+    if (unquote == null || unquote == undefined) {
+      unquote = true;
+    }
+
+    if (typeof value == 'string') {
+      if (value.length >= 10 && value.match(ISO_PATTERN) && value.length < 100) {
+        return new Date(value);
+      }
+      else if (value.length >= 4 && value.match(TIME_PATTERN) && value.length < 100) {
+        try {
+          var momentDate = moment().utcOffset(window.systemTimeZoneOffset, true);
+
+          var g = TIME_PATTERN.exec(value);
+
+          momentDate = momentDate.hour(g[1]).minute(g[2]).second(g[3]).year(1970).dayOfYear(1).month(0);
+
+          return momentDate.toDate();
+        }
+        catch (e) {
+          return value;
+        }
+      }
+      else if (value.length >= 10 && value.substring(0, 6) == '/Date(' && value.substring(value.length - 2, value.length) == ")/") {
+        var r = value.substring(6, value.length-2);
+        return new Date(parseInt(r));
+      }
+      else if (value.length >= 20 && value.substring(0, 9) == "datetime'" && value.substring(value.length - 1, value.length) == "'") {
+        var r = value.substring(9, value.length-1);
+        return new Date(r);
+      }
+      else if (value.length >= 20 && value.substring(0, 15) == "datetimeoffset'" && value.substring(value.length - 1, value.length) == "'") {
+        var r = value.substring(15, value.length-1);
+        return new Date(r);
+      }
+      else if (unquote) {
+        if (value.length >= 2 && ((value.charAt(0) == "'" && value.charAt(value.length-1) == "'") || (value.charAt(0) == "\"" && value.charAt(value.length-1) == "\"")) ) {
+          var r = value.substring(1, value.length-1);
+          return r;
+        }
+
+        else if (value == 'true' || value == 'false') {
+          return (value == 'true')
+        }
+
+        else if (value == 'null') {
+          return null;
+        }
+
+        else if (value != '') {
+          return parseFloat(value);
+        }
+      }
+    }
+
+    return value;
+  }
+
   window.parseXml = function(xml) {
     var dom = null;
 
@@ -171,10 +271,10 @@
       },
       escape: function(txt) {
         return txt.trim()
-        .replace(/[\\]/g, "\\\\")
-        .replace(/[\"]/g, '\\"')
-        .replace(/[\n]/g, '\\n')
-        .replace(/[\r]/g, '\\r');
+            .replace(/[\\]/g, "\\\\")
+            .replace(/[\"]/g, '\\"')
+            .replace(/[\n]/g, '\\n')
+            .replace(/[\r]/g, '\\r');
       },
       removeWhite: function(e) {
         e.normalize();
@@ -293,7 +393,7 @@
 
     return json;
   }
-  
+
   window.objectClone = function(obj, validFields) {
     var copy;
 
@@ -309,11 +409,11 @@
 
     if (obj instanceof Array) {
       copy = [];
-      
+
       for (var i = 0, len = obj.length; i < len; i++) {
-          copy[i] = objectClone(obj[i], undefined);
+        copy[i] = objectClone(obj[i], undefined);
       }
-      
+
       return copy;
     }
 
@@ -332,30 +432,92 @@
             return true;
           }
         }
-        
+
         return false;
       }
     }
-    
+
     var isFunction = function(functionToCheck) {
-     return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+      return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
     }
-    
+
     if (obj instanceof Object) {
       copy = {};
-      
+
       for (var attr in obj) {
-  			if ((obj.hasOwnProperty(attr)) && (obj[attr] != undefined) && 
-  			    (attr.substr(0,1) != '_') && (!isFunction(obj[attr])) && 
-  			    (validFieldObject(attr, validFields))) {
-  				copy[attr] = objectClone(obj[attr], validFields[attr]);
-  			}
+        if ((obj.hasOwnProperty(attr)) && (obj[attr] != undefined) &&
+            (attr.substr(0,1) != '_') && (!isFunction(obj[attr])) &&
+            (validFieldObject(attr, validFields))) {
+          copy[attr] = objectClone(obj[attr], validFields[attr]);
+        }
       }
-      
+
       return copy;
     }
-    
+
     throw new Error("Unable to copy obj! Its type isn't supported.");
   }
-  
+
+  window.getOperatorODATA = function(left, operator, right) {
+    if (operator == '%') {
+      return 'substringof(' + right + ', ' + left + ')';
+    } else if (operator == '=') {
+      return left + ' eq ' + right;
+    } else if (operator == '!=') {
+      return left + ' ne ' + right;
+    } else if (operator == '>') {
+      return left + ' gt ' + right;
+    } else if (operator == '>=') {
+      return left + ' ge ' + right;
+    } else if (operator == '<') {
+      return left + ' lt ' + right;
+    } else if (operator == '<=') {
+      return left + ' le ' + right;
+    }
+  }
+
+  window.executeRight = function(right) {
+    var result = 'null';
+    if (right != null && right != undefined) {
+      if (right.startsWith(':') || right.startsWith('datetimeoffset\'') || right.startsWith('datetime\'') ) {
+        result = right;
+      }
+      else {
+        result = eval(right);
+        if (result instanceof Date) {
+          result = "datetimeoffset'" + result.toISOString() + "'";
+        }
+        else if (typeof result == 'string') {
+          result = "'" + result + "'";
+        }
+
+        else if (result === undefined || result == null) {
+          result = 'null';
+        }
+      }
+    }
+    return result;
+  };
+
+  window.parserOdata = function (data) {
+    var result = '';
+    var operation = data.type;
+
+    if (data.args) {
+      for (var i = 0; i < data.args.length; i++) {
+        var arg = data.args[i];
+        var oper = operation;
+        if (i == 0) {
+          oper = '';
+        }
+        if (arg.args && arg.args.length > 0) {
+          result = result + ' ' + oper.toLowerCase() + ' ( ' + parserOdata(arg) + ' ) ';
+        } else {
+          result = result + ' ' + oper.toLowerCase() + ' ' + getOperatorODATA(arg.left, arg.type, executeRight(arg.right));
+        }
+      }
+    }
+    return result.trim();
+  }
+
 })();
