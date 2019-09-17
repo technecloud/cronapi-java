@@ -3,6 +3,8 @@ package cronapi.list;
 import com.google.gson.JsonArray;
 import cronapi.Var;
 import cronapi.json.JsonArrayWrapper;
+
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -37,15 +39,13 @@ public class Operations {
   }
 
   public static final Var newList(Var... values) throws Exception {
-    LinkedList<Var> linkedList = new LinkedList<Var>();
-    for (Var v : values) {
-      linkedList.add(v);
-    }
+    LinkedList<Var> linkedList = new LinkedList<>();
+    Collections.addAll(linkedList, values);
     return Var.valueOf(linkedList);
   }
 
   public static final Var newListRepeat(Var item, Var times) throws Exception {
-    LinkedList<Var> linkedList = new LinkedList<Var>();
+    LinkedList<Var> linkedList = new LinkedList<>();
     for (int i = 0; i < times.getObjectAsInt(); i++) {
       linkedList.add(item);
     }

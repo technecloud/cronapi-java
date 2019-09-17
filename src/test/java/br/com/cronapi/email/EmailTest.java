@@ -3,15 +3,14 @@ package br.com.cronapi.email;
 
 import cronapi.Var;
 import cronapi.email.Operations;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.*;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class EmailTest {
 
@@ -29,7 +28,7 @@ public class EmailTest {
     private Var password;
     private Var ssl;
 
-    @Before
+    @BeforeEach
     public void setUp() {
          this.from = Var.VAR_NULL;
          this.to = Var.VAR_NULL;
@@ -46,7 +45,7 @@ public class EmailTest {
          this.ssl = Var.VAR_NULL;
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
     }
 
@@ -58,9 +57,9 @@ public class EmailTest {
     public void sendEmailNull(){
         try {
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertTrue(e instanceof RuntimeException);
+            assertTrue(e instanceof RuntimeException);
         }
     }
 
@@ -69,9 +68,9 @@ public class EmailTest {
         try {
             this.ssl =  Var.valueOf("ssl");
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertTrue(e instanceof RuntimeException);
+            assertTrue(e instanceof RuntimeException);
         }
     }
 
@@ -80,9 +79,9 @@ public class EmailTest {
         try {
             this.ssl =  Var.valueOf("tls");
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertTrue(e instanceof RuntimeException);
+            assertTrue(e instanceof RuntimeException);
         }
     }
 
@@ -91,9 +90,9 @@ public class EmailTest {
         try {
             this.ssl =  Var.valueOf("plain");
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertTrue(e instanceof RuntimeException);
+            assertTrue(e instanceof RuntimeException);
         }
     }
 
@@ -102,9 +101,9 @@ public class EmailTest {
         try {
             this.from =  Var.valueOf("wesley.rover@cronapp.io");
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertEquals(e.getCause().getMessage(), "Invalid message supplied");
+            assertEquals(e.getCause().getMessage(), "Invalid message supplied");
         }
     }
 
@@ -114,9 +113,9 @@ public class EmailTest {
             this.from =  Var.valueOf("wesley.rover@cronapp.io");
             this.msg = Var.valueOf("E-mail - new case test.");
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
+            assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
         }
     }
 
@@ -127,9 +126,9 @@ public class EmailTest {
             this.msg = Var.valueOf("E-mail - new case test.");
             this.cc = Var.valueOf("email@cronapp.io");
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
+            assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
         }
     }
 
@@ -140,9 +139,9 @@ public class EmailTest {
             this.msg = Var.valueOf("E-mail - new case test.");
             this.cc = Var.valueOf(Arrays.asList(Var.valueOf("email@cronapp.io"), Var.valueOf("email@cronapp.io")));
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
+            assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
         }
     }
 
@@ -153,9 +152,9 @@ public class EmailTest {
             this.msg = Var.valueOf("E-mail - new case test.");
             this.bcc = Var.valueOf("email@cronapp.io");
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
+            assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
         }
     }
 
@@ -166,9 +165,9 @@ public class EmailTest {
             this.msg = Var.valueOf("E-mail - new case test.");
             this.bcc = Var.valueOf(Arrays.asList(Var.valueOf("email@cronapp.io"), Var.valueOf("email@cronapp.io")));
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
+            assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
         }
     }
 
@@ -179,9 +178,9 @@ public class EmailTest {
             this.msg = Var.valueOf("E-mail - new case test.");
             this.to = Var.valueOf("email@cronapp.io");
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
+            assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
         }
     }
 
@@ -192,9 +191,9 @@ public class EmailTest {
             this.msg = Var.valueOf("E-mail - new case test.");
             this.to = Var.valueOf(Arrays.asList(Var.valueOf("email@cronapp.io"), Var.valueOf("email@cronapp.io")));
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
+            assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
         }
     }
 
@@ -206,9 +205,9 @@ public class EmailTest {
             this.to = Var.valueOf("email@cronapp.io");
             this.attachments = Var.valueOf("E-mail - new case test.");
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertEquals(e.getCause().getMessage(), "Cannot attach file \"E-mail - new case test.\"");
+            assertEquals(e.getCause().getMessage(), "Cannot attach file \"E-mail - new case test.\"");
         }
     }
 
@@ -220,9 +219,9 @@ public class EmailTest {
             this.msg = Var.valueOf("E-mail - new case test.");
             this.attachments = Var.valueOf(Arrays.asList(Var.valueOf(new File(getClass().getResource("/books.json").getPath()))));
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
+            assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
         }
     }
 
@@ -234,9 +233,9 @@ public class EmailTest {
             this.msg = Var.valueOf("E-mail - new case test.");
             this.html = Var.valueOf("E-mail - new case test.");
             send();
-            Assert.fail();
+            fail();
         } catch (Exception e){
-            Assert.assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
+            assertEquals(e.getCause().getMessage(), "Cannot find valid hostname for mail session");
         }
     }
 

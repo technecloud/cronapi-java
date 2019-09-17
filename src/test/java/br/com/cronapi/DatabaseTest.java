@@ -2,11 +2,14 @@ package br.com.cronapi;
 
 import cronapi.Var;
 import cronapi.database.Operations;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.fail;
 
 
 public class DatabaseTest {
+
   @Test
   public void QAIBT_1436() {
     try {
@@ -15,9 +18,9 @@ public class DatabaseTest {
           Var.valueOf("select u from User u"),
           Var.VAR_NULL
       );
-      Assert.fail();
+      fail();
     } catch (Exception e) {
-      Assert.assertFalse(e instanceof NullPointerException);
+      assertFalse(e instanceof NullPointerException);
     }
   }
 }

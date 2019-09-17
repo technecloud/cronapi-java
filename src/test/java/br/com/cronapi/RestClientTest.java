@@ -1,7 +1,7 @@
 package br.com.cronapi;
 
 import cronapi.RestClient;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class RestClientTest {
 
