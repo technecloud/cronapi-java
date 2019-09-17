@@ -1,4 +1,4 @@
-//v2.0.22
+//v2.1.0
 var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
 var TIME_PATTERN  = new RegExp("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)(?:\\.(\\d+)?)?S)?");
 var DEP_PATTERN  = new RegExp("\\{\\{(.*?)\\|raw\\}\\}");
@@ -2985,6 +2985,47 @@ angular.module('datasourcejs', [])
       return result.trim();
     }.bind(this);
 
+    this.refreshData = function(callback) {
+      if (this.lastFetch && !this.hasMemoryData && this.enabled && !this.inserting && !this.editing) {
+        if (Pace) {
+          Pace.options.ajax = false;
+        }
+
+        var after = function() {
+          if (Pace) {
+            Pace.options.ajax = true;
+          }
+          if (callback) {
+            callback();
+          }
+        };
+
+        var cb = {
+          success: after,
+          error: after
+        }
+        this.lastFilter = null;
+        this.lastFetch.fetchOptions = this.lastFetch.fetchOptions || {};
+        this.lastFetch.fetchOptions.active = this.copy(this.active);
+        this.lastFetch.fetchOptions.active.__$id = undefined;
+        this.fetch(this.lastFetch.properties, cb, this.lastFetch.isNextOrPrev, this.lastFetch.fetchOptions);
+      } else {
+        if (callback) {
+          callback();
+        }
+      }
+    }
+
+    this.startAutoRefresh = function() {
+      if (this.autoRefresh > 0) {
+        setTimeout(function() {
+          this.refreshData(function() {
+            this.startAutoRefresh();
+          }.bind(this));
+        }.bind(this), this.autoRefresh);
+      }
+    }
+
     /**
      *  Fetch all data from the server
      */
@@ -2996,6 +3037,12 @@ angular.module('datasourcejs', [])
           this.fetch(properties, callbacksObj, isNextOrPrev, fetchOptions);
         }.bind(this), 1000);
         return;
+      }
+
+      this.lastFetch = {
+        properties: properties,
+        isNextOrPrev: isNextOrPrev,
+        fetchOptions: fetchOptions
       }
 
       if (!fetchOptions) {
@@ -3068,8 +3115,12 @@ angular.module('datasourcejs', [])
               Array.prototype.push.apply(this.data, data);
               if (!fetchOptions.ignoreAtive) {
                 if (this.data.length > 0) {
-                  this.active = data[0];
-                  this.cursor = 0;
+                  if (fetchOptions.active) {
+                    this.goTo(fetchOptions.active);
+                  } else {
+                    this.active = data[0];
+                    this.cursor = 0;
+                  }
                 } else {
                   this.active = {};
                   this.cursor = -1;
@@ -3084,8 +3135,12 @@ angular.module('datasourcejs', [])
             Array.prototype.push.apply(this.data, data);
             if (this.data.length > 0) {
               if (!fetchOptions.ignoreAtive) {
-                this.active = data[0];
-                this.cursor = 0;
+                if (fetchOptions.active) {
+                  this.goTo(fetchOptions.active);
+                } else {
+                  this.active = data[0];
+                  this.cursor = 0;
+                }
               }
             }
           }
@@ -3163,6 +3218,11 @@ angular.module('datasourcejs', [])
         if (this.startMode == 'edit') {
           this.startMode = null;
           this.startEditing();
+        }
+
+        if (this.autoRefresh > 0 && !this.autoRefreshStarted) {
+          this.autoRefreshStarted = true;
+          this.startAutoRefresh();
         }
       }.bind(this);
 
@@ -3748,6 +3808,7 @@ angular.module('datasourcejs', [])
         dts.endpoint = props.endpoint;
         dts.filterURL = props.filterURL;
         dts.autoPost = props.autoPost;
+        dts.autoRefresh = props.autoRefresh;
         dts.deleteMessage = props.deleteMessage;
         dts.enabled = props.enabled;
         dts.offset = (props.offset) ? props.offset : 0; // Default offset is 0
@@ -3761,10 +3822,10 @@ angular.module('datasourcejs', [])
         dts.onBeforeDelete = props.onBeforeDelete;
         dts.onAfterDelete = props.onAfterDelete;
         dts.onGET = props.onGet,
-            dts.onPOST = props.onPost,
-            dts.onPUT = props.onPut,
-            dts.onDELETE = props.onDelete,
-            dts.dependentBy = props.dependentBy;
+        dts.onPOST = props.onPost,
+        dts.onPUT = props.onPut,
+        dts.onDELETE = props.onDelete,
+        dts.dependentBy = props.dependentBy;
         dts.parameters = props.parameters;
         dts.parametersNullStrategy = props.parametersNullStrategy;
         dts.parametersExpression = props.parametersExpression;
@@ -3900,6 +3961,7 @@ angular.module('datasourcejs', [])
           deleteMessage: attrs.deleteMessage || attrs.deleteMessage === "" ? attrs.deleteMessage : $translate.instant('General.RemoveData'),
           headers: attrs.headers,
           autoPost: attrs.autoPost === "true",
+          autoRefresh: (attrs.autoRefresh !== undefined && attrs.autoRefresh !== null) ? attrs.autoRefresh : 0,
           onError: attrs.onError,
           onAfterFill: attrs.onAfterFill,
           onBeforeCreate: attrs.onBeforeCreate,
