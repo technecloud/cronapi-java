@@ -50,14 +50,14 @@ public class Operations {
 		try {
 			HtmlEmail email = new HtmlEmail();
 			email.setCharset(cronapi.CronapiConfigurator.ENCODING);
-			if ( ssl.getObjectAsString().equals("SSL") ||  ssl.getObjectAsBoolean()) {
+			if ( ssl.getObjectAsString().equalsIgnoreCase("SSL") ||  ssl.getObjectAsBoolean()) {
 				email.setSSLOnConnect(true);
 				email.setSslSmtpPort(smtpPort.getObjectAsString());
-			} else if(ssl.getObjectAsString().equals("TLS")  || ssl.getObjectAsString().equals("false")){
+			} else if(ssl.getObjectAsString().equalsIgnoreCase("TLS")  || ssl.getObjectAsString().equals("false")){
 				email.setStartTLSRequired(true);
 				email.setSSLOnConnect(false);
 				email.setSmtpPort(smtpPort.getObjectAsInt());
-			}else if(ssl.getObjectAsString().equals("PLAIN")){
+			}else if(ssl.getObjectAsString().equalsIgnoreCase("PLAIN")){
                 email.setStartTLSRequired(false);
                 email.setSSLOnConnect(false);
 				email.setSmtpPort(smtpPort.getObjectAsInt());

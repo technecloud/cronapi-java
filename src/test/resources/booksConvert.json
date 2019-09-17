@@ -1,42 +1,30 @@
 {
-  "store": {
-    "name": "Little Shop",
-    "none": null,
-    "switch": true,
-    "magazine": [],
-    "truck": {},
-    "book": [
-      {
-        "category": "reference",
-        "author": "Nigel Rees",
-        "title": "Sayings of the Century",
-        "price": 8.95
-      },
-      {
-        "category": "fiction",
-        "author": "Evelyn Waugh",
-        "title": "Sword of Honour",
-        "price": 12.99
-      },
-      {
-        "category": "fiction",
-        "author": "Herman Melville",
-        "title": "Moby Dick",
-        "isbn": "0-553-21311-3",
-        "price": 8.99
-      },
-      {
-        "category": "fiction",
-        "author": "J. R. R. Tolkien",
-        "title": "The Lord of the Rings",
-        "isbn": "0-395-19395-8",
-        "price": 22.99
-      }
-    ],
-    "bicycle": {
-      "color": "red",
-      "price": 19.95
-    }
-  },
-  "expensive": 10
+  "name": "spring-boot-data-security-angularjs",
+  "homepage": "http://www.techne.com.br",
+  "authors": [
+    "CronosPaas"
+  ],
+  "description": "spring-boot-data-security-angularjs",
+  "main": "",
+  "keywords": [
+    "spring-boot",
+    "angularjs"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "plugins/",
+    "test",
+    "tests",
+    "package.json",
+    "src"
+  ],
+  "dependencies": {
+    "cronapp-framework-js": "3960da1d0e87a967d4b384d02a2d9470bca6cda0",
+    "cronapp-common-js": "fd785cc72a250c8f5eb3f1b0eaf653a0107cf37f",
+    "cronapi-js": "80247275643cd57052d029b71e8f8768739f4065",
+    "cronapp-lib-js": "a64c9c3306654461b170f78c0a46d05e4ad256f7"
+  }
 }
