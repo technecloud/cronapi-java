@@ -1,21 +1,18 @@
 package br.com.cronapi.util;
 
 import cronapi.Var;
-import cronapi.util.Operations;
 import cronapi.util.SecurityUtil;
-import org.junit.Assert;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SecurityUtilTest {
 
     @Test
     public void getRoles() {
         List<SecurityUtil.SecurityGroup> data = SecurityUtil.getRoles();
-        Assert.assertTrue(Var.valueOf(data).isEmptyOrNull());
+        assertTrue(Var.valueOf(data).isEmptyOrNull());
     }
 }

@@ -1,57 +1,57 @@
 package br.com.cronapi.math;
 
 import cronapi.Var;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static cronapi.math.Operations.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class MathTest {
 
-    @Before
+    @BeforeEach
     public void setUp() {
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
     }
 
     @Test
     public void testPow() throws Exception {
         // simple
-        Assert.assertEquals(pow(Var.valueOf(7) ,Var.valueOf(2)).getObjectAsDouble(), Var.valueOf(49).getObjectAsDouble());
-        Assert.assertEquals(pow(Var.valueOf(7) ,Var.valueOf(3)).getObjectAsDouble(), Var.valueOf(343).getObjectAsDouble());
-        Assert.assertEquals(pow(Var.valueOf(2) ,Var.valueOf(10)).getObjectAsDouble(), Var.valueOf(1024).getObjectAsDouble());
+        assertEquals(pow(Var.valueOf(7) ,Var.valueOf(2)).getObjectAsDouble(), Var.valueOf(49).getObjectAsDouble());
+        assertEquals(pow(Var.valueOf(7) ,Var.valueOf(3)).getObjectAsDouble(), Var.valueOf(343).getObjectAsDouble());
+        assertEquals(pow(Var.valueOf(2) ,Var.valueOf(10)).getObjectAsDouble(), Var.valueOf(1024).getObjectAsDouble());
         // fractional exponents
-        Assert.assertEquals(pow(Var.valueOf(4) ,Var.valueOf(0.5)).getObjectAsDouble(), Var.valueOf(2).getObjectAsDouble());
-        Assert.assertEquals(pow(Var.valueOf(8) ,Var.valueOf(0.333333333)).getObjectAsDouble(), Var.valueOf(1.9999999986137056).getObjectAsDouble());
+        assertEquals(pow(Var.valueOf(4) ,Var.valueOf(0.5)).getObjectAsDouble(), Var.valueOf(2).getObjectAsDouble());
+        assertEquals(pow(Var.valueOf(8) ,Var.valueOf(0.333333333)).getObjectAsDouble(), Var.valueOf(1.9999999986137056).getObjectAsDouble());
         // signed exponents
-        Assert.assertEquals(pow(Var.valueOf(7) ,Var.valueOf(-2)).getObjectAsDouble(), Var.valueOf(0.02040816326530612).getObjectAsDouble());
+        assertEquals(pow(Var.valueOf(7) ,Var.valueOf(-2)).getObjectAsDouble(), Var.valueOf(0.02040816326530612).getObjectAsDouble());
         // signed bases
-        Assert.assertEquals(pow(Var.valueOf(-7) ,Var.valueOf(2)).getObjectAsDouble(), Var.valueOf(49).getObjectAsDouble());
-        Assert.assertEquals(pow(Var.valueOf(-7) ,Var.valueOf(3)).getObjectAsDouble(), Var.valueOf(-343).getObjectAsDouble());
-        Assert.assertEquals(pow(Var.valueOf(-7) ,Var.valueOf(0.5)).getObjectAsDouble(), Var.valueOf(Double.NaN).getObjectAsDouble());
+        assertEquals(pow(Var.valueOf(-7) ,Var.valueOf(2)).getObjectAsDouble(), Var.valueOf(49).getObjectAsDouble());
+        assertEquals(pow(Var.valueOf(-7) ,Var.valueOf(3)).getObjectAsDouble(), Var.valueOf(-343).getObjectAsDouble());
+        assertEquals(pow(Var.valueOf(-7) ,Var.valueOf(0.5)).getObjectAsDouble(), Var.valueOf(Double.NaN).getObjectAsDouble());
     }
 
     @Test
     public void testMultiply() throws Exception {
-        Assert.assertEquals(multiply(Var.valueOf(Double.valueOf("5.1")), Var.valueOf(Double.valueOf("5.1"))).getObjectAsDouble(), Var.valueOf("26.009999999999998").getObjectAsDouble());
-        Assert.assertEquals(multiply(Var.valueOf(Long.valueOf("5")), Var.valueOf(Long.valueOf("5"))).getObjectAsLong(), Var.valueOf("25").getObjectAsLong());
+        assertEquals(multiply(Var.valueOf(Double.valueOf("5.1")), Var.valueOf(Double.valueOf("5.1"))).getObjectAsDouble(), Var.valueOf("26.009999999999998").getObjectAsDouble());
+        assertEquals(multiply(Var.valueOf(Long.valueOf("5")), Var.valueOf(Long.valueOf("5"))).getObjectAsLong(), Var.valueOf("25").getObjectAsLong());
     }
 
     @Test
     public void testSubtract() throws Exception {
-        Assert.assertEquals(subtract(Var.valueOf(Double.valueOf("5.1")), Var.valueOf(Double.valueOf("1.1"))).getObjectAsDouble(), Var.valueOf("3.9999999999999996").getObjectAsDouble());
-        Assert.assertEquals(subtract(Var.valueOf(Long.valueOf("5")), Var.valueOf(Long.valueOf("2"))).getObjectAsLong(), Var.valueOf("3").getObjectAsLong());
+        assertEquals(subtract(Var.valueOf(Double.valueOf("5.1")), Var.valueOf(Double.valueOf("1.1"))).getObjectAsDouble(), Var.valueOf("3.9999999999999996").getObjectAsDouble());
+        assertEquals(subtract(Var.valueOf(Long.valueOf("5")), Var.valueOf(Long.valueOf("2"))).getObjectAsLong(), Var.valueOf("3").getObjectAsLong());
 
     }
 
     @Test
     public void testSum() throws Exception {
-        Assert.assertEquals(sum(Var.valueOf(Double.valueOf("5.1")), Var.valueOf(Double.valueOf("5.1"))).getObjectAsDouble(), Var.valueOf("10.2").getObjectAsDouble());
-        Assert.assertEquals(sum(Var.valueOf(Long.valueOf("5")), Var.valueOf(Long.valueOf("5"))).getObjectAsLong(), Var.valueOf("10").getObjectAsLong());
+        assertEquals(sum(Var.valueOf(Double.valueOf("5.1")), Var.valueOf(Double.valueOf("5.1"))).getObjectAsDouble(), Var.valueOf("10.2").getObjectAsDouble());
+        assertEquals(sum(Var.valueOf(Long.valueOf("5")), Var.valueOf(Long.valueOf("5"))).getObjectAsLong(), Var.valueOf("10").getObjectAsLong());
 
     }
 

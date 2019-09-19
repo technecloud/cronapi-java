@@ -4,22 +4,23 @@ package br.com.cronapi.map;
 import com.google.gson.JsonObject;
 import cronapi.Var;
 import cronapi.map.Operations;
-import org.apache.commons.io.IOUtils;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
 import java.util.LinkedHashMap;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class MapTest {
 
-    @Before
+    @BeforeEach
     public void setUp() {
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
     }
 
@@ -30,7 +31,7 @@ public class MapTest {
     @Test
     public void testCreateObjectMap() throws Exception {
         Var retorno = Operations.createObjectMap();
-        Assert.assertTrue(retorno.getObject() instanceof LinkedHashMap);
+        assertTrue(retorno.getObject() instanceof LinkedHashMap);
     }
 
     @Test
@@ -42,7 +43,7 @@ public class MapTest {
                 "}";
         Var retorno = Operations.toList(Var.valueOf(json));
         retorno = Operations.getJsonOrMapField(retorno, Var.valueOf("$"));
-        Assert.assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
+        assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
     }
 
    // @Test
@@ -54,7 +55,7 @@ public class MapTest {
                 "}";
         Var retorno = Operations.toList(Var.valueOf(json));
         retorno = Operations.getMapField(retorno, Var.valueOf("$"));
-        Assert.assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
+        assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
     }
 
     @Test
@@ -69,7 +70,7 @@ public class MapTest {
     public void testToJson() throws Exception {
         InputStream booksInput = getClass().getResourceAsStream("/books.json");
         Var booksJsonNovo = Operations.toJson(Var.valueOf(null));
-        Assert.assertTrue(booksJsonNovo.getObject() instanceof JsonObject);
+        assertTrue(booksJsonNovo.getObject() instanceof JsonObject);
     }
 
     @Test
@@ -85,7 +86,7 @@ public class MapTest {
                 "}";
         Var retorno = Operations.toMap(Var.valueOf(json));
         retorno = Operations.getJsonOrMapField(retorno, Var.valueOf("$"));
-        Assert.assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
+        assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
     }
 
     public static class FooBarBaz {

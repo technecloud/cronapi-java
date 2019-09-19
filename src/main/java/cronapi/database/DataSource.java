@@ -713,6 +713,9 @@ public class DataSource implements JsonSerializable {
     if (this.insertedElement != null)
       return this.insertedElement;
 
+    if (Objects.isNull(this.page))
+      return null;
+
     if (this.current < 0 || this.current > this.page.getContent().size() - 1)
       return null;
 
@@ -1373,7 +1376,7 @@ public class DataSource implements JsonSerializable {
   }
 
   public Var getId() {
-    if (getObject() == null) {
+    if (Objects.isNull(getObject())) {
       return Var.VAR_NULL;
     }
 

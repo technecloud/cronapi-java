@@ -27,4 +27,9 @@ public class JsonMock {
                 "}";
     }
 
+    public static class FooBarBaz {
+        public String foo;
+        public Long bar;
+        public boolean baz;
+    }
 }
