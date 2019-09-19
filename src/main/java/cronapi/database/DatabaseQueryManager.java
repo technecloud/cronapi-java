@@ -1,6 +1,5 @@
 package cronapi.database;
 
-import java.util.LinkedList;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -15,6 +14,8 @@ import cronapi.Var;
 
 public class DatabaseQueryManager {
 
+  private static final String BLOCKLY = "blockly";
+  private static final String BEFORE_UPDATE = "beforeUpdate";
   private boolean isolatedTransaction = true;
   private String id;
   private JsonObject query;
@@ -54,7 +55,7 @@ public class DatabaseQueryManager {
     final Var[] params = toVarArray(objParams);
     return runIntoTransaction(() -> {
       
-      if(QueryManager.getType(query).equals("blockly")) {
+      if(QueryManager.getType(query).equals(BLOCKLY)) {
         return QueryManager.executeBlockly(query, "GET", params);
       }
       else {
@@ -76,7 +77,7 @@ public class DatabaseQueryManager {
 
     return runIntoTransaction(() -> {
       
-      if(QueryManager.getType(query).equals("blockly")) {
+      if(QueryManager.getType(query).equals(BLOCKLY)) {
         Var[] params = (Var[])ArrayUtils.addAll(new Var[] { data }, extraParams);
         QueryManager.executeEvent(query, data, "beforeInsert");
         Var inserted = QueryManager.executeBlockly(query, "POST", params);
@@ -106,11 +107,11 @@ public class DatabaseQueryManager {
 
     return runIntoTransaction(() -> {
       
-      if(QueryManager.getType(query).equals("blockly")) {
+      if(QueryManager.getType(query).equals(BLOCKLY)) {
         Var[] params = (Var[])ArrayUtils.addAll(new Var[] { data }, extraParams);
-        QueryManager.executeEvent(query, data, "beforeUpdate");
+        QueryManager.executeEvent(query, data, BEFORE_UPDATE);
         Var modified = QueryManager.executeBlockly(query, "PUT", params);
-        QueryManager.executeEvent(query, data, "beforeUpdate");
+        QueryManager.executeEvent(query, data, BEFORE_UPDATE);
         
         return modified;
       }
@@ -118,7 +119,7 @@ public class DatabaseQueryManager {
         DataSource ds = new DataSource(query);
         
         ds.filter(data, null);
-        QueryManager.executeEvent(query, ds, "beforeUpdate");
+        QueryManager.executeEvent(query, ds, BEFORE_UPDATE);
         ds.update(data);
         Var saved = Var.valueOf(ds.save());
         QueryManager.executeEvent(query, ds, "afterUpdate");
@@ -132,7 +133,7 @@ public class DatabaseQueryManager {
 
     runIntoTransaction(() -> {
       
-      if(QueryManager.getType(query).equals("blockly")) {
+      if(QueryManager.getType(query).equals(BLOCKLY)) {
         QueryManager.executeEvent(query, "beforeDelete", extraParams);
         QueryManager.executeBlockly(query, "DELETE", extraParams);
         QueryManager.executeEvent(query, "afterDelete", extraParams);

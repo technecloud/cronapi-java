@@ -7,7 +7,6 @@ import cronapi.database.DataSource;
 import cronapi.json.Operations;
 import org.apache.commons.io.IOUtils;
 import org.jdom2.Document;
-import org.jdom2.input.JDOMParseException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,10 +16,11 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.List;
 
+import static br.com.cronapi.mock.JsonMock.gerJsonToMap;
+import static br.com.cronapi.mock.JsonMock.getJson;
 import static cronapi.json.Operations.toJson;
 import static cronapi.json.Operations.toXml;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 
 public class JsonTest {
 
@@ -86,13 +86,7 @@ public class JsonTest {
         Operations.setJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("store.bicycle.color"), Var.valueOf("black"));
         retorno = Operations.getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("store.bicycle.color"));
         assertEquals(retorno.getObjectAsString(), "black");
-        String json = "{\n" +
-                "   \"foo\" : \"foo\",\n" +
-                "   \"bar\" : 10,\n" +
-                "   \"baz\" : true\n" +
-                "}";
-
-        retorno = Operations.getJsonOrMapField(Var.valueOf(json), Var.valueOf("$"));
+        retorno = Operations.getJsonOrMapField(Var.valueOf(getJson()), Var.valueOf("$"));
         assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
         Operations.setJsonOrMapField(Var.valueOf(((JsonObject)retorno.getObject())),Var.valueOf("bar"), Var.valueOf("1"));
         retorno = Operations.getJsonOrMapField(retorno,Var.valueOf("bar"));
@@ -115,28 +109,18 @@ public class JsonTest {
 
     @Test
     public void testToList() throws Exception {
-        String json = "{\n" +
-                "   \"foo\" : \"foo\",\n" +
-                "   \"bar\" : 10,\n" +
-                "   \"baz\" : true\n" +
-                "}";
-        Var retorno = Operations.toList(Var.valueOf(json));
+        Var retorno = Operations.toList(Var.valueOf(getJson()));
         retorno = Operations.getJsonOrMapField(retorno, Var.valueOf("$"));
         assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
     }
 
     @Test
     public void testToMap() throws Exception {
-        String json = "{\n" +
-                "   \"foo\" : \"foo\",\n" +
-                "   \"bar\" : 10,\n" +
-                "   \"baz\" : true\n" +
-                "}";
-        Var retorno = Operations.toMap(Var.valueOf(json));
+
+        Var retorno = Operations.toMap(Var.valueOf(getJson()));
         retorno = Operations.getJsonOrMapField(retorno, Var.valueOf("$"));
         assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
-        json = "[".concat(json).concat("]");
-        retorno = Operations.toMap(Var.valueOf(json));
+        retorno = Operations.toMap(Var.valueOf(gerJsonToMap()));
         assertTrue(retorno.getObject() instanceof List);
         InputStream fileInputStream = new FileInputStream(getClass().getResource("/books.json").getPath());
         Var booksJsonNovo = Operations.toMap(Var.valueOf(fileInputStream));
@@ -153,9 +137,4 @@ public class JsonTest {
         assertTrue(toXml(booksJsonConvert).getObject() instanceof Document);
     }
 
-    public static class FooBarBaz {
-        public String foo;
-        public Long bar;
-        public boolean baz;
-    }
 }
