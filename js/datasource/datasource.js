@@ -1,4 +1,4 @@
-//v2.0.22
+//v2.1.0
 var ISO_PATTERN  = new RegExp("(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d\\.\\d+([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))|(\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d([+-][0-2]\\d:[0-5]\\d|Z))");
 var TIME_PATTERN  = new RegExp("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)(?:\\.(\\d+)?)?S)?");
 var DEP_PATTERN  = new RegExp("\\{\\{(.*?)\\|raw\\}\\}");
@@ -2257,15 +2257,18 @@ angular.module('datasourcejs', [])
       return this.active;
     };
 
-    /**
-     *  Moves the cursor to the specified item
-     */
-    this.goTo = function(rowId, serverQuery) {
-      var found = false;
+    this.findObjInDs = function(rowId, returnCursor) {
 
-      if (rowId == null || rowId == undefined) {
-        return null;
+      var found = false;
+      var result = null;
+
+      if (rowId === null || rowId === undefined) {
+        return result;
       }
+
+      var cursor = null;
+      var copyObj = null;
+
 
       if (typeof rowId === 'object' && rowId !== null) {
         var dataKeys;
@@ -2285,10 +2288,11 @@ angular.module('datasourcejs', [])
             }
           }
           if (found) {
-            this.cursor = i;
-            this.active = this.copy(this.data[this.cursor], {});
+            cursor = i;
 
-            var keys = this.getKeyValues(this.data[this.cursor]);
+            copyObj = this.copy(this.data[cursor], {});
+
+            var keys = this.getKeyValues(this.data[cursor]);
             var defined = true;
             for (var key in keys) {
               if (keys[key] === undefined) {
@@ -2301,23 +2305,46 @@ angular.module('datasourcejs', [])
               this.fetchChildren();
             }
 
-            return this.active;
           }
         }
       } else {
         if (Array.isArray(this.keys)) {
           for (var i = 0; i < this.data.length; i++) {
             if (this.data[i][this.keys[0]] === rowId) {
-              this.cursor = i;
-              this.active = this.copy(this.data[this.cursor], {});
+              cursor = i;
+              copyObj = this.copy(this.data[cursor], {});
               found = true
-              return this.active;
             }
           }
         }
       }
 
-      return null;
+      if (copyObj !== null) {
+        result = copyObj;
+        if (returnCursor) {
+          result = {
+            cursor: cursor,
+            obj: copyObj
+          };
+        }
+      }
+
+      return result;
+
+    };
+
+    /**
+     *  Moves the cursor to the specified item
+     */
+    this.goTo = function(rowId, serverQuery) {
+
+      var result = this.findObjInDs(rowId, true);
+      if (result !== null) {
+        this.cursor = result.cursor;
+        this.active = result.obj;
+        return this.active;
+      }
+      return result;
     };
 
     /**
@@ -2921,6 +2948,9 @@ angular.module('datasourcejs', [])
             } else {
 
               if (!this.isEmpty(value)) {
+                if (resultData) {
+                  resultData.count = resultData.count ? resultData.count + 1 : 1;
+                }
                 if (result != '') {
                   result += ' ' + oper.toLowerCase() + ' ';
                 }
@@ -2948,6 +2978,9 @@ angular.module('datasourcejs', [])
 
                 if (canContinue) {
 
+                  if (resultData) {
+                    resultData.count = resultData.count ? resultData.count + 1 : 1;
+                  }
                   if (result != '') {
                     result += ' ' + oper.toLowerCase() + ' ';
                   }
@@ -2979,6 +3012,47 @@ angular.module('datasourcejs', [])
       return result.trim();
     }.bind(this);
 
+    this.refreshData = function(callback) {
+      if (this.lastFetch && !this.hasMemoryData && this.enabled && !this.inserting && !this.editing) {
+        if (Pace) {
+          Pace.options.ajax = false;
+        }
+
+        var after = function() {
+          if (Pace) {
+            Pace.options.ajax = true;
+          }
+          if (callback) {
+            callback();
+          }
+        };
+
+        var cb = {
+          success: after,
+          error: after
+        }
+        this.lastFilter = null;
+        this.lastFetch.fetchOptions = this.lastFetch.fetchOptions || {};
+        this.lastFetch.fetchOptions.active = this.copy(this.active);
+        this.lastFetch.fetchOptions.active.__$id = undefined;
+        this.fetch(this.lastFetch.properties, cb, this.lastFetch.isNextOrPrev, this.lastFetch.fetchOptions);
+      } else {
+        if (callback) {
+          callback();
+        }
+      }
+    }
+
+    this.startAutoRefresh = function() {
+      if (this.autoRefresh > 0) {
+        setTimeout(function() {
+          this.refreshData(function() {
+            this.startAutoRefresh();
+          }.bind(this));
+        }.bind(this), this.autoRefresh);
+      }
+    }
+
     /**
      *  Fetch all data from the server
      */
@@ -2990,6 +3064,12 @@ angular.module('datasourcejs', [])
           this.fetch(properties, callbacksObj, isNextOrPrev, fetchOptions);
         }.bind(this), 1000);
         return;
+      }
+
+      this.lastFetch = {
+        properties: properties,
+        isNextOrPrev: isNextOrPrev,
+        fetchOptions: fetchOptions
       }
 
       if (!fetchOptions) {
@@ -3062,8 +3142,12 @@ angular.module('datasourcejs', [])
               Array.prototype.push.apply(this.data, data);
               if (!fetchOptions.ignoreAtive) {
                 if (this.data.length > 0) {
-                  this.active = data[0];
-                  this.cursor = 0;
+                  if (fetchOptions.active) {
+                    this.goTo(fetchOptions.active);
+                  } else {
+                    this.active = data[0];
+                    this.cursor = 0;
+                  }
                 } else {
                   this.active = {};
                   this.cursor = -1;
@@ -3078,8 +3162,12 @@ angular.module('datasourcejs', [])
             Array.prototype.push.apply(this.data, data);
             if (this.data.length > 0) {
               if (!fetchOptions.ignoreAtive) {
-                this.active = data[0];
-                this.cursor = 0;
+                if (fetchOptions.active) {
+                  this.goTo(fetchOptions.active);
+                } else {
+                  this.active = data[0];
+                  this.cursor = 0;
+                }
               }
             }
           }
@@ -3157,6 +3245,11 @@ angular.module('datasourcejs', [])
         if (this.startMode == 'edit') {
           this.startMode = null;
           this.startEditing();
+        }
+
+        if (this.autoRefresh > 0 && !this.autoRefreshStarted) {
+          this.autoRefreshStarted = true;
+          this.startAutoRefresh();
         }
       }.bind(this);
 
@@ -3279,7 +3372,18 @@ angular.module('datasourcejs', [])
               this.conditionOdata = this.parserCondition(obj, this.parametersNullStrategy, resultData);
             }
 
+            var filterCount = this.conditionExpression.match(/{{(?!null).*?}}/g).length;
+
             if (!cleanData && resultData.clean) {
+              cleanData = true;
+            }
+            if (!cleanData && this.loadDataStrategy === "one" && (!resultData.count || resultData.count < 1)) {
+              cleanData = true;
+            }
+            if (!cleanData && this.loadDataStrategy === "all" && filterCount && (!resultData.count || resultData.count < filterCount)) {
+              cleanData = true;
+            }
+            if (!cleanData && this.loadDataStrategy === "button" && fetchOptions.origin !== "button") {
               cleanData = true;
             }
 
@@ -3731,6 +3835,7 @@ angular.module('datasourcejs', [])
         dts.endpoint = props.endpoint;
         dts.filterURL = props.filterURL;
         dts.autoPost = props.autoPost;
+        dts.autoRefresh = props.autoRefresh;
         dts.deleteMessage = props.deleteMessage;
         dts.enabled = props.enabled;
         dts.offset = (props.offset) ? props.offset : 0; // Default offset is 0
@@ -3744,10 +3849,10 @@ angular.module('datasourcejs', [])
         dts.onBeforeDelete = props.onBeforeDelete;
         dts.onAfterDelete = props.onAfterDelete;
         dts.onGET = props.onGet,
-            dts.onPOST = props.onPost,
-            dts.onPUT = props.onPut,
-            dts.onDELETE = props.onDelete,
-            dts.dependentBy = props.dependentBy;
+        dts.onPOST = props.onPost,
+        dts.onPUT = props.onPut,
+        dts.onDELETE = props.onDelete,
+        dts.dependentBy = props.dependentBy;
         dts.parameters = props.parameters;
         dts.parametersNullStrategy = props.parametersNullStrategy;
         dts.parametersExpression = props.parametersExpression;
@@ -3883,6 +3988,7 @@ angular.module('datasourcejs', [])
           deleteMessage: attrs.deleteMessage || attrs.deleteMessage === "" ? attrs.deleteMessage : $translate.instant('General.RemoveData'),
           headers: attrs.headers,
           autoPost: attrs.autoPost === "true",
+          autoRefresh: (attrs.autoRefresh !== undefined && attrs.autoRefresh !== null) ? attrs.autoRefresh : 0,
           onError: attrs.onError,
           onAfterFill: attrs.onAfterFill,
           onBeforeCreate: attrs.onBeforeCreate,
@@ -4025,6 +4131,10 @@ angular.module('datasourcejs', [])
 
           if (datasource.condition != value) {
             datasource.condition = value;
+
+            if (datasource.loadDataStrategy === "button") {
+              return;
+            }
 
             $timeout.cancel(timeoutPromise);
             timeoutPromise =$timeout(function() {
