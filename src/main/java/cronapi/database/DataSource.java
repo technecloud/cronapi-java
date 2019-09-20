@@ -235,7 +235,7 @@ public class DataSource implements JsonSerializable {
 
     try {
 
-      boolean namedParams = (params.length > 0 && params[0].getId() != null) || useUrlParams;
+      boolean namedParams = Objects.nonNull(params) && ((params.length > 0 && params[0].getId() != null) || useUrlParams);
 
       JPQLParserUtil.ODataInfo info = null;
 
