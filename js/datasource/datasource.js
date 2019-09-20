@@ -538,7 +538,7 @@ angular.module('datasourcejs', [])
             error = data;
           } else {
             var errorMsg = (data.msg || data.desc || data.message || data.error || data.responseText);
-            if (this.isOData()) {
+            if (this.isOData() && data.error.message && data.error.message.value) {
               errorMsg = data.error.message.value;
             }
             if (errorMsg) {
@@ -3014,13 +3014,15 @@ angular.module('datasourcejs', [])
 
     this.refreshData = function(callback) {
       if (this.lastFetch && !this.hasMemoryData && this.enabled && !this.inserting && !this.editing) {
-        if (Pace) {
-          Pace.options.ajax = false;
+        if (window.Pace) {
+          window.Pace.options.ajax.trackWebSockets = false;
+          window.Pace.options.ajax.trackMethods = [];
         }
 
         var after = function() {
-          if (Pace) {
-            Pace.options.ajax = true;
+          if (window.Pace) {
+            window.Pace.options.ajax.trackWebSockets = true;
+            window.Pace.options.ajax.trackMethods = ["PUT", "POST", "GET"];
           }
           if (callback) {
             callback();
@@ -3035,7 +3037,7 @@ angular.module('datasourcejs', [])
         this.lastFetch.fetchOptions = this.lastFetch.fetchOptions || {};
         this.lastFetch.fetchOptions.active = this.copy(this.active);
         this.lastFetch.fetchOptions.active.__$id = undefined;
-        this.fetch(this.lastFetch.properties, cb, this.lastFetch.isNextOrPrev, this.lastFetch.fetchOptions);
+        this.fetch(this.lastFetch.properties, cb, this.lastFetch.isNextOrPrev, this.lastFetch.fetchOptions, true);
       } else {
         if (callback) {
           callback();
@@ -3057,7 +3059,7 @@ angular.module('datasourcejs', [])
      *  Fetch all data from the server
      */
 
-    this.fetch = function(properties, callbacksObj, isNextOrPrev, fetchOptions) {
+    this.fetch = function(properties, callbacksObj, isNextOrPrev, fetchOptions, silent) {
 
       if (this.busy || this.postingBatch) {
         setTimeout(function() {
@@ -3569,6 +3571,14 @@ angular.module('datasourcejs', [])
       // Make the datasource busy
       this.busy = true;
 
+      var httpError = function(data, status, headers, config) {
+        this.busy = false;
+        if (!silent) {
+          this.handleError(data);
+        }
+        if (callbacks.error) callbacks.error.call(this, data);
+      }.bind(this);
+
       // Get an ajax promise
       this.$promise = this.getService("GET")({
         method: "GET",
@@ -3588,9 +3598,7 @@ angular.module('datasourcejs', [])
           sucessHandler(data, null);
         }
       }.bind(this)).error(function(data, status, headers, config) {
-        this.busy = false;
-        this.handleError(data);
-        if (callbacks.error) callbacks.error.call(this, data);
+        httpError(data, status, headers, config);
       }.bind(this));
 
 
