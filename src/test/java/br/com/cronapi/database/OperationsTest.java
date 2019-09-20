@@ -56,7 +56,7 @@ class OperationsTest {
         assertDoesNotThrow(() -> {
             item.set(cronapi.object.Operations.newObject(Var.valueOf("app.entity.TestDataBaseType"), Var.valueOf("typeString", Var.valueOf("test")), Var.valueOf("typeLogic", Var.VAR_TRUE), Var.valueOf("typeCaract", Var.valueOf("A"))));
             Operations.insert(Var.valueOf("app.entity.TestDataBaseType"), item.get());
-                });
+        });
 
         Var valueTest = Var.valueOf("test");
         item.set(Operations.query(Var.valueOf("app.entity.TestDataBaseType"), Var.valueOf("select t, t.id, t.typeBigDecinal, t.typeBigInteger, t.typeByte, t.typeByteArray, t.typeByteArrayBanco, t.typeCaract, t.typeDate, t.typeDateTime, t.typeIntero, t.typeLogic, t.typeLong, t.typeNumerico, t.typeShort, t.typeString, t.typeTime from TestDataBaseType t where t.typeString = :typeString"), Var.valueOf("typeString", valueTest)));
