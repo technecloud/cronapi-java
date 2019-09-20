@@ -36,8 +36,7 @@ public class Operations {
     else {
       ds.filter(query.getObjectAsString(), params);
     }
-    Var varDs = new Var(ds);
-    return varDs;
+    return Var.valueOf(ds);
   }
   
   public static Var queryPaged(Var entity, Var query, Var useRestPagination, Var ... params) {

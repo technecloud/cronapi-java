@@ -1,4 +1,4 @@
-package cronapi.database;
+package br.com.cronapi.database;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
