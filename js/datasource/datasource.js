@@ -4268,7 +4268,6 @@ app.directive('crnRepeat', function(DatasetManager, $compile, $parse, $injector,
       scope.$watchCollection('datasourceRepeat.data', function (newVal, oldVal) {
         if (tagName.toLowerCase() == "ion-slide") {
           var $ionicSlideBoxDelegate = $injector.get('$ionicSlideBoxDelegate');
-          $ionicSlideBoxDelegate.slide(0);
           $ionicSlideBoxDelegate.update();
         }
       });
