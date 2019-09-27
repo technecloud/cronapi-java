@@ -3485,14 +3485,15 @@ angular.module('datasourcejs', [])
       if (paramFilter) {
         if (filter && filter != '') {
           if (this.isOData()) {
-            filter += " and ";
+            filter += " and (";
+            filter += paramFilter + ")";
           } else {
             filter += ";";
+            filter += paramFilter;
           }
-        }
-        filter += paramFilter;
+        } 
       }
-
+      
       var paramOrder = null;
 
       if (this.isOData() && props.params.$orderby) {
