@@ -46,7 +46,7 @@ public class Operations {
     String offset = null;
     boolean limitChosen = false;
     boolean offsetChosen = false;
-    
+
     List<Var> finalParams = new LinkedList<>();
     for (Var p : params){
       switch (p.getId()) {
