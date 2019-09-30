@@ -71,6 +71,7 @@ public class DataSource implements JsonSerializable {
   private boolean useUrlParams = false;
   private boolean countData = false;
   private boolean useOdataRequest = false;
+  private boolean useOffset = false;
 
   /**
    * Init a datasource with a page size equals 100
@@ -320,7 +321,9 @@ public class DataSource implements JsonSerializable {
       if ((this.pageRequest != null) && (!isCount)) {
         if (info != null && info.first != null) {
           query.setFirstResult(info.first);
-        } else {
+        }else if(this.useOffset) {
+          query.setFirstResult(this.pageRequest.getPageNumber());
+        }else{
           query.setFirstResult(this.pageRequest.getPageNumber() * this.pageRequest.getPageSize());
         }
         if (info != null && info.max != null) {
@@ -1451,5 +1454,9 @@ public class DataSource implements JsonSerializable {
 
   public void setUseOdataRequest(boolean useOdataRequest) {
     this.useOdataRequest = useOdataRequest;
+  }
+
+  public void setUseOffset(boolean useOffset) {
+        this.useOffset = useOffset;
   }
 }
