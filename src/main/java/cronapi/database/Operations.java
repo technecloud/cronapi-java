@@ -44,8 +44,6 @@ public class Operations {
     DataSource ds = new DataSource(entity.getObjectAsString());
     String limit = null;
     String offset = null;
-    boolean limitChosen = false;
-    boolean offsetChosen = false;
 
     List<Var> finalParams = new LinkedList<>();
     for (Var p : params){
