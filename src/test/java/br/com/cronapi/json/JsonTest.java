@@ -4,7 +4,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.internal.LinkedTreeMap;
 import cronapi.Var;
 import cronapi.database.DataSource;
-import cronapi.json.Operations;
 import org.apache.commons.io.IOUtils;
 import org.jdom2.Document;
 import org.junit.jupiter.api.AfterEach;
@@ -18,8 +17,7 @@ import java.util.List;
 
 import static br.com.cronapi.mock.JsonMock.gerJsonToMap;
 import static br.com.cronapi.mock.JsonMock.getJson;
-import static cronapi.json.Operations.toJson;
-import static cronapi.json.Operations.toXml;
+import static cronapi.json.Operations.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class JsonTest {
@@ -45,25 +43,25 @@ public class JsonTest {
 
     @Test
     public void testCreateObjectJson() throws Exception {
-        assertTrue(Operations.createObjectJson().getObject() instanceof JsonObject);
+        assertTrue(createObjectJson().getObject() instanceof JsonObject);
     }
 
     @Test
     public void testDeleteObjectFromJson() throws Exception {
-        Operations.deleteObjectFromJson(Var.valueOf(booksJson), Var.valueOf("store"));
+        deleteObjectFromJson(Var.valueOf(booksJson), Var.valueOf("store"));
         assertEquals(booksJson.getObjectAsJson().getAsJsonObject().get("expensive").toString(), "10");
     }
 
     @Test
     public void testGetJsonOrMapField() throws Exception {
-        Var retorno = Operations.getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
+        Var retorno = getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
         assertEquals(retorno.getObjectAsString(), "10");
-        retorno = Operations.getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("book.category"));
+        retorno = getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("book.category"));
         assertNull(retorno.getObject());
 
         DataSource ds = Mockito.mock(DataSource.class);
         Mockito.when(ds.getObject()).thenReturn(Mockito.mock(DataSource.class));
-        retorno = Operations.getJsonOrMapField(Var.valueOf(ds),Var.valueOf("book.category"));
+        retorno = getJsonOrMapField(Var.valueOf(ds),Var.valueOf("book.category"));
         assertNull(retorno.getObject());
 
         String json = "{\n" +
@@ -72,24 +70,24 @@ public class JsonTest {
                 "   \"baz\" : true\n" +
                 "}";
 
-        retorno = Operations.getJsonOrMapField(Var.valueOf(json), Var.valueOf("$"));
+        retorno = getJsonOrMapField(Var.valueOf(json), Var.valueOf("$"));
         assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
     }
 
     @Test
     public void testSetJsonOrMapField() throws Exception {
-        Var retorno = Operations.getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
+        Var retorno = getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
         assertEquals(retorno.getObjectAsString(), "10");
-        Operations.setJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"), Var.valueOf("11"));
-        retorno = Operations.getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
+        setJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"), Var.valueOf("11"));
+        retorno = getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
         assertEquals(retorno.getObjectAsString(), "11");
-        Operations.setJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("store.bicycle.color"), Var.valueOf("black"));
-        retorno = Operations.getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("store.bicycle.color"));
+        setJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("store.bicycle.color"), Var.valueOf("black"));
+        retorno = getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("store.bicycle.color"));
         assertEquals(retorno.getObjectAsString(), "black");
-        retorno = Operations.getJsonOrMapField(Var.valueOf(getJson()), Var.valueOf("$"));
+        retorno = getJsonOrMapField(Var.valueOf(getJson()), Var.valueOf("$"));
         assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
-        Operations.setJsonOrMapField(Var.valueOf(((JsonObject)retorno.getObject())),Var.valueOf("bar"), Var.valueOf("1"));
-        retorno = Operations.getJsonOrMapField(retorno,Var.valueOf("bar"));
+        setJsonOrMapField(Var.valueOf(((JsonObject)retorno.getObject())),Var.valueOf("bar"), Var.valueOf("1"));
+        retorno = getJsonOrMapField(retorno,Var.valueOf("bar"));
         assertEquals(retorno.getObjectAsString(), "1");
     }
 
@@ -97,7 +95,7 @@ public class JsonTest {
     public void testSetJsonOrMapFieldErro() throws Exception {
         DataSource ds = Mockito.mock(DataSource.class);
         Mockito.when(ds.getObject()).thenReturn(Mockito.mock(DataSource.class));
-        assertThrows(ClassCastException.class, () -> { Operations.setJsonOrMapField(Var.valueOf(ds), Var.valueOf("store.bicycle.color"), Var.valueOf("2")); });
+        assertThrows(ClassCastException.class, () -> { setJsonOrMapField(Var.valueOf(ds), Var.valueOf("store.bicycle.color"), Var.valueOf("2")); });
     }
 
     @Test
@@ -109,21 +107,21 @@ public class JsonTest {
 
     @Test
     public void testToList() throws Exception {
-        Var retorno = Operations.toList(Var.valueOf(getJson()));
-        retorno = Operations.getJsonOrMapField(retorno, Var.valueOf("$"));
+        Var retorno = toList(Var.valueOf(getJson()));
+        retorno = getJsonOrMapField(retorno, Var.valueOf("$"));
         assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
     }
 
     @Test
     public void testToMap() throws Exception {
 
-        Var retorno = Operations.toMap(Var.valueOf(getJson()));
-        retorno = Operations.getJsonOrMapField(retorno, Var.valueOf("$"));
+        Var retorno = toMap(Var.valueOf(getJson()));
+        retorno = getJsonOrMapField(retorno, Var.valueOf("$"));
         assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
-        retorno = Operations.toMap(Var.valueOf(gerJsonToMap()));
+        retorno = toMap(Var.valueOf(gerJsonToMap()));
         assertTrue(retorno.getObject() instanceof List);
         InputStream fileInputStream = new FileInputStream(getClass().getResource("/books.json").getPath());
-        Var booksJsonNovo = Operations.toMap(Var.valueOf(fileInputStream));
+        Var booksJsonNovo = toMap(Var.valueOf(fileInputStream));
         assertTrue(booksJsonNovo.getObject() instanceof LinkedTreeMap);
     }
 
