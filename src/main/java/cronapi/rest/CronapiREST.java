@@ -7,6 +7,8 @@ import cronapi.util.SecurityUtil;
 import cronapi.util.StorageService;
 import cronapi.util.StorageServiceFileObject;
 import org.apache.commons.lang3.ArrayUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +34,8 @@ import java.util.regex.Pattern;
 @RestController
 @RequestMapping(value = "/api/cronapi")
 public class CronapiREST {
+
+  private static final Logger log = LoggerFactory.getLogger(CronapiREST.class);
 
   private static Pattern RELATION_PARAM = Pattern.compile("relation:(.*?):(.*?)$");
 
@@ -128,9 +132,8 @@ public class CronapiREST {
 
   @ExceptionHandler(Throwable.class)
   @ResponseBody
-  ResponseEntity<ErrorResponse> handleControllerException(HttpServletRequest req, Throwable ex) {
-    ex.printStackTrace();
-    ;
+  public ResponseEntity<ErrorResponse> handleControllerException(HttpServletRequest req, Throwable ex) {
+    log.warn("handleControllerException", ex);
     ErrorResponse errorResponse = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), ex, req.getMethod());
     return new ResponseEntity<ErrorResponse>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
   }
@@ -149,9 +152,10 @@ public class CronapiREST {
 
       TranslationPath translationPath = translatePathVars(entity);
 
-      PageRequest page = new PageRequest(pageable.getPageNumber(), pageable.getPageSize());
-
       DataSource ds = new DataSource(entity);
+
+      PageRequest page = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+
       if (translationPath.relationClass == null) {
         ds.checkRESTSecurity("GET");
         if (translationPath.params.length > 0 && translationPath.params[0].equals("__new__")) {
@@ -188,17 +192,14 @@ public class CronapiREST {
 
       if (translationPath.relationClass == null) {
         ds.checkRESTSecurity("PUT");
-        ds.filter(data, null);
-        ds.update(data);
-        return Var.valueOf(ds.save());
       } else {
         ds.checkRESTSecurity(translationPath.refId, "PUT");
         String entityRelation = ds.getRelationEntity(translationPath.refId);
         ds = new DataSource(entityRelation);
-        ds.filter(data, null);
-        ds.update(data);
-        return Var.valueOf(ds.save());
       }
+      ds.filter(data, null);
+      ds.update(data);
+      return Var.valueOf(ds.save());
     });
 
     return new ResponseEntity<Object>(result.getValue().getObject(), HttpStatus.OK);

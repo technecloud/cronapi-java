@@ -306,7 +306,6 @@
         <project.cronospass.resource mimetype="folder/src">src/main/java</project.cronospass.resource>
         <project.cronospass.resource mimetype="folder/src">src/test/java</project.cronospass.resource>
         <mockito.version>3.0.0</mockito.version>
-<!--        <junit.version>4.12</junit.version>-->
         <jupiter.version>5.5.1</jupiter.version>
         <junit-platform.version>1.2.0</junit-platform.version>
     </properties>
