@@ -1171,7 +1171,6 @@ angular.module('datasourcejs', [])
       if (this.checkRequired) {
         var valid = this.validateFields('[required][ng-model*="' + this.name + '."].ng-invalid-required', this.translate.instant("FieldIsRequired"));
         valid = valid && this.validateFields('[required][ng-model*="' + this.name + '."].ng-empty', this.translate.instant("FieldIsRequired"));
-        valid = valid && this.validateFields('[valid][ng-model*="' + this.name + '."].ng-empty', this.translate.instant("FieldIsRequired"));
         valid = valid && this.validateFields('[ng-model*="' + this.name + '."].ng-invalid', this.translate.instant("FieldIsInvalid"));
 
         return !valid;
