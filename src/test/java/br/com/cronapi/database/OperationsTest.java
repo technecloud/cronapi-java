@@ -53,8 +53,8 @@ class OperationsTest {
         assertDoesNotThrow(() -> Operations.beginTransaction(Var.valueOf("app.entity.TestDataBaseType")));
         AtomicReference<Var> item = new AtomicReference<>(Operations.query(Var.valueOf("app.entity.TestDataBaseType"), Var.valueOf("select t, t.id, t.typeBigDecinal, t.typeBigInteger, t.typeByte, t.typeByteArray, t.typeByteArrayBanco, t.typeCaract, t.typeDate, t.typeDateTime, t.typeIntero, t.typeLogic, t.typeLong, t.typeNumerico, t.typeShort, t.typeString, t.typeTime from TestDataBaseType t")));
         DataSource ds = (DataSource) item.get().getObject();
-        assertEquals(ds.getPage().getTotalElements(), 0);
-        assertEquals(Operations.hasElement(item.get()).getObjectAsBoolean(), false);
+        assertEquals(ds.getPage().getTotalElements(), 2);
+        assertEquals(Operations.hasElement(item.get()).getObjectAsBoolean(), true);
         assertDoesNotThrow(() -> {
             item.set(cronapi.object.Operations.newObject(Var.valueOf("app.entity.TestDataBaseType"), Var.valueOf("typeString", Var.valueOf("test")), Var.valueOf("typeLogic", Var.VAR_TRUE), Var.valueOf("typeCaract", Var.valueOf("A"))));
             Var item2 = cronapi.object.Operations.newObject(Var.valueOf("app.entity.TestDataBaseType"), Var.valueOf("typeString", Var.valueOf("test")), Var.valueOf("typeLogic", Var.VAR_TRUE), Var.valueOf("typeCaract", Var.valueOf("A")));
@@ -78,7 +78,7 @@ class OperationsTest {
         assertDoesNotThrow(() -> Operations.beginTransaction(Var.valueOf("app.entity.TestDataBaseType")));
         Var retorno = Operations.query(Var.valueOf("app.entity.TestDataBaseType"),Var.valueOf(Var.VAR_NULL));
         DataSource ds = (DataSource) retorno.getObject();
-        assertEquals(ds.getPage().getTotalElements(), 0);
+        assertEquals(ds.getPage().getTotalElements(), 2);
         assertDoesNotThrow(() -> Operations.rollbackTransaction(Var.valueOf("app.entity.TestDataBaseType")));
     }
 
@@ -97,7 +97,7 @@ class OperationsTest {
         assertDoesNotThrow(() -> Operations.beginTransaction(Var.valueOf("app.entity.TestDataBaseType")));
         AtomicReference<Var> item = new AtomicReference<>(Operations.query(Var.valueOf("app.entity.TestDataBaseType"), Var.valueOf("select t, t.id, t.typeBigDecinal, t.typeBigInteger, t.typeByte, t.typeByteArray, t.typeByteArrayBanco, t.typeCaract, t.typeDate, t.typeDateTime, t.typeIntero, t.typeLogic, t.typeLong, t.typeNumerico, t.typeShort, t.typeString, t.typeTime from TestDataBaseType t")));
         DataSource ds = (DataSource) item.get().getObject();
-        assertNull(Operations.getActiveData(Var.valueOf(item.get())).getObject());
+        assertNotNull(Operations.getActiveData(Var.valueOf(item.get())).getObject());
         assertDoesNotThrow(() -> Operations.rollbackTransaction(Var.valueOf("app.entity.TestDataBaseType")));
     }
 

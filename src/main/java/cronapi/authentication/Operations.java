@@ -18,14 +18,13 @@ import cronapi.CronapiMetaData.CategoryType;
 @CronapiMetaData(category = CategoryType.AUTHENTICATION, categoryTags = { "Autenticação", "Authentication" })
 public class Operations {
 
-
   @CronapiMetaData(type = "function", name = "{{getUserRoles}}", nameTags = { "listar", "list","regras","roles","papeis","grupos" }, description = "{{getUserRolesDescription}}")
   public static final Var getUserRoles() throws Exception{ 
-    LinkedList<String> groups = new LinkedList<String>();
+    LinkedList<String> groups = new LinkedList<>();
     for( cronapi.util.SecurityUtil.SecurityGroup obj : cronapi.util.SecurityUtil.getRoles()){
 	   groups.add(obj.id); 
 	}
-		return Var.valueOf(groups);
+    return Var.valueOf(groups);
   }
 
 }
