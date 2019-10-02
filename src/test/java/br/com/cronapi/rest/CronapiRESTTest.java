@@ -28,7 +28,9 @@ import static cronapi.json.Operations.toJson;
 import static org.mockito.Mockito.*;
 
 class CronapiRESTTest {
+
     private static final String APP_ENTITY_TEST_DATA_BASE_TYPE = "app.entity.TestDataBaseType";
+
     @Mock
     HttpServletRequest request;
     @Mock

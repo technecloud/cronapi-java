@@ -17,7 +17,7 @@ public class RestBody {
   }
 
   public Map<?,?> getEntityData() {
-    return (Map<?,?>) getFirtsInput().getObject();
+    return Objects.nonNull(getFirtsInput()) ? (Map<?,?>) getFirtsInput().getObject() : null;
   }
   
   public void setInputs(Var[] inputs) {
