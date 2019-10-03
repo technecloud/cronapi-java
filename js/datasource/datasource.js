@@ -1171,7 +1171,6 @@ angular.module('datasourcejs', [])
       if (this.checkRequired) {
         var valid = this.validateFields('[required][ng-model*="' + this.name + '."].ng-invalid-required', this.translate.instant("FieldIsRequired"));
         valid = valid && this.validateFields('[required][ng-model*="' + this.name + '."].ng-empty', this.translate.instant("FieldIsRequired"));
-        valid = valid && this.validateFields('[valid][ng-model*="' + this.name + '."].ng-empty', this.translate.instant("FieldIsRequired"));
         valid = valid && this.validateFields('[ng-model*="' + this.name + '."].ng-invalid', this.translate.instant("FieldIsInvalid"));
 
         return !valid;
@@ -1188,7 +1187,7 @@ angular.module('datasourcejs', [])
         return false;
       }
       if (this.checkRequired) {
-        return $('input[ng-model*="' + this.name + '."]:invalid').size() > 0;
+        return $('input[ng-model*="' + this.name + '."]:invalid').not('.ng-empty').size() > 0;
       } else {
         return false;
       }
