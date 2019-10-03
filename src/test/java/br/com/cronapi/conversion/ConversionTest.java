@@ -4,12 +4,14 @@ import cronapi.Var;
 import cronapi.conversion.Operations;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-class OperationsTest {
+class ConversionTest {
 
     private static final String VALUE_ASSERT = "Y3JvbmFwcA==";
     private static final String CRONAPP = "cronapp";
@@ -69,7 +71,7 @@ class OperationsTest {
     @Test
     void testBase64ToBinary() throws Exception {
         Var result = Operations.base64ToBinary(Var.valueOf(VALUE_ASSERT));
-        assertEquals(new Var("id", "object"), result);
+        assertEquals("01100011011100100110111101101110011000010111000001110000", result.getObjectAsString());
         result = Operations.base64ToBinary(Var.VAR_NULL);
         assertNull(result.getObject());
     }
@@ -82,20 +84,20 @@ class OperationsTest {
 
     @Test
     void testStringToDate() throws Exception {
-        Var result = Operations.stringToDate(new Var(null, "object"), new Var(null, "object"));
-        assertEquals(new Var(null, "object"), result);
+        Var result = Operations.stringToDate(Var.valueOf("01/01/1978"), Var.valueOf("DD/mm/YYYY"));
+        assertEquals(78, result.getObjectAsDateTime().getTime().getYear());
     }
 
     @Test
     void testDecToHex() throws Exception {
-        Var result = Operations.decToHex(new Var(null, "object"));
-        assertEquals(new Var(null, "object"), result);
+        Var result = Operations.decToHex(Var.valueOf(BigDecimal.valueOf(10)));
+        assertEquals("a", result.getObjectAsString());
     }
 
     @Test
     void testToLong() throws Exception {
-        Var result = Operations.toLong(new Var(null, "object"));
-        assertEquals(new Var(null, "object"), result);
+        Var result = Operations.toLong(Var.valueOf("10"));
+        assertEquals(10, result.getObjectAsLong());
     }
 
     @Test
@@ -106,25 +108,25 @@ class OperationsTest {
 
     @Test
     void testToDouble() throws Exception {
-        Var result = Operations.toDouble(new Var(null, "object"));
-        assertEquals(new Var(null, "object"), result);
+        Var result = Operations.toDouble(Var.valueOf("10.5"));
+        assertEquals(Double.valueOf("10.5"), result.getObjectAsDouble());
     }
 
     @Test
     void testToBoolean() throws Exception {
-        Var result = Operations.toBoolean(new Var(null, "object"));
-        assertEquals(new Var(null, "object"), result);
+        Var result = Operations.toBoolean(Var.valueOf("true"));
+        assertEquals(true, result.getObjectAsBoolean());
     }
 
     @Test
     void testFormatDouble() throws Exception {
-        Var result = Operations.formatDouble(new Var("id", "object"), new Var("id", "object"));
-        assertEquals(new Var("id", "object"), result);
+        Var result = Operations.formatDouble(Var.valueOf(41251.50000000012343), Var.valueOf("#.#####"));
+        assertEquals("41251,5", result.getObjectAsString());
     }
 
     @Test
     void testConvertLongToDate() throws Exception {
-        Var result = Operations.convertLongToDate(new Var("id", "object"));
-        assertEquals(new Var("id", "object"), result);
+        Var result = Operations.convertLongToDate(Var.valueOf("1355270400000"));
+        assertEquals(112, result.getObjectAsDateTime().getTime().getYear());
     }
 }

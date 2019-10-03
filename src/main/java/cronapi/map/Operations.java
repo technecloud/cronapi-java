@@ -26,8 +26,8 @@ public class Operations {
 			@ParamMetaData(type = ObjectType.OBJECT, description = "{{createObjectWithMapParam0}}") Var... map)
 			throws Exception {
 		LinkedHashMap mapObject = new LinkedHashMap<String, Var>();
-		for (int i = 0; i < map.length; i++) {
-			mapObject.put(map[i].getId(), new Var(map[i].getObject()));
+		for (Var var : map) {
+			mapObject.put(var.getId(), new Var(var.getObject()));
 		}
 		return new Var(mapObject);
 	}
@@ -35,8 +35,7 @@ public class Operations {
 	@CronapiMetaData(type = "function", name = "{{createObjectMapName}}", nameTags = {
 			"createObjectMap" }, description = "{{createObjectMapDescription}}", returnType = ObjectType.OBJECT)
 	public static final Var createObjectMap() throws Exception {
-		Var value = new Var(new LinkedHashMap<>());
-		return value;
+		return Var.valueOf(new LinkedHashMap<>());
 	}
 
 	@CronapiMetaData(type = "function", name = "{{getMapFieldName}}", nameTags = {

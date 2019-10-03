@@ -20,13 +20,13 @@ import static br.com.cronapi.mock.JsonMock.getJson;
 import static cronapi.json.Operations.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class JsonTest {
+ class JsonTest {
 
     private Var booksJson;
     private Var booksJsonConvert;
 
     @BeforeEach
-    public void setUp() throws Exception {
+     void setUp() throws Exception {
         try (InputStream booksInput = getClass().getResourceAsStream("/books.json")) {
             booksJson = toJson(Var.valueOf(IOUtils.toString(booksInput)));
         }
@@ -36,24 +36,24 @@ public class JsonTest {
     }
 
     @AfterEach
-    public void tearDown() {
+     void tearDown() {
         booksJsonConvert = null;
         booksJson = null;
     }
 
     @Test
-    public void testCreateObjectJson() throws Exception {
+     void testCreateObjectJson() throws Exception {
         assertTrue(createObjectJson().getObject() instanceof JsonObject);
     }
 
     @Test
-    public void testDeleteObjectFromJson() throws Exception {
+     void testDeleteObjectFromJson() throws Exception {
         deleteObjectFromJson(Var.valueOf(booksJson), Var.valueOf("store"));
         assertEquals(booksJson.getObjectAsJson().getAsJsonObject().get("expensive").toString(), "10");
     }
 
     @Test
-    public void testGetJsonOrMapField() throws Exception {
+     void testGetJsonOrMapField() throws Exception {
         Var retorno = getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
         assertEquals(retorno.getObjectAsString(), "10");
         retorno = getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("book.category"));
@@ -75,7 +75,7 @@ public class JsonTest {
     }
 
     @Test
-    public void testSetJsonOrMapField() throws Exception {
+     void testSetJsonOrMapField() throws Exception {
         Var retorno = getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
         assertEquals(retorno.getObjectAsString(), "10");
         setJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"), Var.valueOf("11"));
@@ -92,28 +92,28 @@ public class JsonTest {
     }
 
     @Test()
-    public void testSetJsonOrMapFieldErro() throws Exception {
+     void testSetJsonOrMapFieldErro() throws Exception {
         DataSource ds = Mockito.mock(DataSource.class);
         Mockito.when(ds.getObject()).thenReturn(Mockito.mock(DataSource.class));
         assertThrows(ClassCastException.class, () -> { setJsonOrMapField(Var.valueOf(ds), Var.valueOf("store.bicycle.color"), Var.valueOf("2")); });
     }
 
     @Test
-    public void testToJson() throws Exception {
+     void testToJson() throws Exception {
         InputStream booksInput = getClass().getResourceAsStream("/books.json");
         Var booksJsonNovo = toJson(Var.valueOf(IOUtils.toString(booksInput)));
         assertTrue(booksJsonNovo.getObject() instanceof JsonObject);
     }
 
     @Test
-    public void testToList() throws Exception {
+     void testToList() throws Exception {
         Var retorno = toList(Var.valueOf(getJson()));
         retorno = getJsonOrMapField(retorno, Var.valueOf("$"));
         assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
     }
 
     @Test
-    public void testToMap() throws Exception {
+     void testToMap() throws Exception {
 
         Var retorno = toMap(Var.valueOf(getJson()));
         retorno = getJsonOrMapField(retorno, Var.valueOf("$"));
@@ -125,13 +125,8 @@ public class JsonTest {
         assertTrue(booksJsonNovo.getObject() instanceof LinkedTreeMap);
     }
 
-//    @Test(expected = JDOMParseException.class)
-//    public void testToXmlException() throws Exception {
-//        assertTrue(toXml(booksJson).getObject() instanceof Document);
-//    }
-
     @Test
-    public void testToXml() throws Exception {
+     void testToXml() throws Exception {
         assertTrue(toXml(booksJsonConvert).getObject() instanceof Document);
     }
 

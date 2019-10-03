@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class OperationsTest {
+class DatabaseTest {
 
     @BeforeEach
     void setUp() {
