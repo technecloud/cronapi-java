@@ -1,12 +1,10 @@
 package br.com.cronapi.rest;
 
 import app.entity.TestDataBaseType;
-import br.com.cronapi.json.JsonTest;
 import cronapi.*;
 import cronapi.database.EntityMetadata;
 import cronapi.database.TenantService;
 import cronapi.rest.CronapiREST;
-import cronapi.util.SecurityUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,13 +16,11 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 
-import static cronapi.json.Operations.toJson;
 import static org.mockito.Mockito.*;
 
 class CronapiRESTTest {

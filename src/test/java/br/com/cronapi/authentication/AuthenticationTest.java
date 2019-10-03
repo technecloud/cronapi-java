@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.util.ReflectionUtils;
 
-class OperationsTest {
+class AuthenticationTest {
 
     @BeforeEach
     void setUp() {
