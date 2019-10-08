@@ -1,159 +1,133 @@
-package cronapi.json;
+package br.com.cronapi.json;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.spi.json.GsonJsonProvider;
-import com.jayway.jsonpath.spi.mapper.GsonMappingProvider;
-import cronapi.CronapiMetaData;
-import cronapi.CronapiMetaData.CategoryType;
-import cronapi.CronapiMetaData.ObjectType;
-import cronapi.ParamMetaData;
-import cronapi.Utils;
+import com.google.gson.internal.LinkedTreeMap;
 import cronapi.Var;
 import cronapi.database.DataSource;
+import org.apache.commons.io.IOUtils;
+import org.jdom2.Document;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.List;
-import java.util.Map;
 
-@CronapiMetaData(category = CategoryType.JSON, categoryTags = {"Json"})
-public class Operations {
+import static br.com.cronapi.mock.JsonMock.gerJsonToMap;
+import static br.com.cronapi.mock.JsonMock.getJson;
+import static cronapi.json.Operations.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-  public static final Configuration GSON_CONFIGURATION = Configuration
-      .builder()
-      .mappingProvider(new GsonMappingProvider())
-      .jsonProvider(new GsonJsonProvider())
-      .build();
+ class JsonTest {
 
-  @CronapiMetaData(type = "function", name = "{{createObjectJson}}", nameTags = {
-      "createObjectJson"}, description = "{{functionToCreateObjectJson}}", returnType = ObjectType.JSON)
-  public static final Var createObjectJson() throws Exception {
-    return Var.valueOf(new JsonObject());
-  }
+    private Var booksJson;
+    private Var booksJsonConvert;
 
-  @CronapiMetaData(type = "function", name = "{{deleteObjectFromJson}}", nameTags = {
-      "createObjectJson"}, description = "{{deleteObjectFromJsonDescription}}", returnType = ObjectType.JSON)
-  public static final void deleteObjectFromJson(
-      @ParamMetaData(type = ObjectType.OBJECT, description = "{{mapOrJsonVar}}") Var object,
-      @ParamMetaData(type = ObjectType.STRING, description = "{{pathKey}}") Var key
-  ) throws Exception {
-    object.getObjectAsJson().getAsJsonObject().remove(key.getObjectAsString());
-  }
-
-  @CronapiMetaData(type = "function", name = "{{getJsonOrMapField}}", nameTags = {
-      "getJsonOrMapField"}, description = "{{functionToGetJsonOrMapField}}", returnType = ObjectType.OBJECT)
-  public static final Var getJsonOrMapField(
-      @ParamMetaData(type = ObjectType.OBJECT, description = "{{mapOrJsonVar}}") Var mapVar,
-      @ParamMetaData(type = ObjectType.STRING, description = "{{pathKey}}") Var keyVar)
-      throws Exception {
-    Var value = Var.VAR_NULL;
-    Object obj = mapVar.getObject();
-    String key = keyVar.toString();
-
-    if (obj instanceof DataSource) {
-      obj = ((DataSource) obj).getObject();
-    }
-
-    if (key.startsWith("$")) {
-      JsonElement jsonToBeSearched = mapVar.getObjectAsJson();
-      Object result = JsonPath.using(GSON_CONFIGURATION).parse(jsonToBeSearched).read(key);
-      return Var.valueOf(result);
-    }
-
-    String[] path = key.toString().split("\\.");
-    for (int i = 0; i < path.length; i++) {
-      String k = path[i];
-      if (obj != null) {
-        if (i == path.length - 1) {
-          value = Var.valueOf(Utils.mapGetObjectPathExtractElement(obj, k, false));
-        } else {
-          obj = Utils.mapGetObjectPathExtractElement(obj, k, false);
+    @BeforeEach
+     void setUp() throws Exception {
+        try (InputStream booksInput = getClass().getResourceAsStream("/books.json")) {
+            booksJson = toJson(Var.valueOf(IOUtils.toString(booksInput)));
         }
-      }
-    }
-    return value;
-  }
-
-  @CronapiMetaData(type = "function", name = "{{setJsonOrMapField}}", nameTags = {
-      "setJsonOrMapField"}, description = "{{functionToSetJsonOrMapField}}", returnType = ObjectType.VOID)
-  public static final void setJsonOrMapField(
-      @ParamMetaData(type = ObjectType.OBJECT, description = "{{mapOrJsonVar}}") Var mapVar,
-      @ParamMetaData(type = ObjectType.STRING, description = "{{pathKey}}") Var keyVar,
-      @ParamMetaData(type = ObjectType.OBJECT, description = "{{valueToBetSet}}") Var value)
-      throws Exception {
-    Object obj = mapVar.getObject();
-    Object key = keyVar.getObject();
-
-    if (obj instanceof DataSource) {
-      obj = ((DataSource) obj).getObject();
-    }
-
-    String[] path = key.toString().split("\\.");
-    for (int i = 0; i < path.length; i++) {
-      String k = path[i];
-      if (obj != null) {
-        if (i == path.length - 1) {
-          Utils.mapSetObject(obj, k, value);
-        } else {
-          obj = Utils.mapGetObjectPathExtractElement(obj, k, true);
+        try (InputStream booksInput = getClass().getResourceAsStream("/booksConvert.json")) {
+            booksJsonConvert = toJson(Var.valueOf(IOUtils.toString(booksInput)));
         }
-      }
-    }
-  }
-
-  @CronapiMetaData(type = "function", name = "{{toJson}}", nameTags = {
-      "toJson"}, description = "{{functionToJson}}", returnType = ObjectType.JSON)
-  public static final Var toJson(
-      @ParamMetaData(type = ObjectType.OBJECT, description = "{{valueToBeRead}}") Var valueToBeRead)
-      throws Exception {
-    return Var.valueOf(valueToBeRead.getObject(JsonElement.class));
-  }
-
-  @CronapiMetaData(type = "function", name = "{{JSONtoList}}", nameTags = {"toList",
-      "Para Lista"}, description = "{{functionToList}}", returnType = ObjectType.LIST)
-  public static final Var toList(
-      @ParamMetaData(type = ObjectType.OBJECT, description = "{{valueToBeRead}}") Var valueToBeRead)
-      throws Exception {
-    return toMap(valueToBeRead);
-  }
-
-  @CronapiMetaData(type = "function", name = "{{toMap}}", nameTags = {"toMap",
-      "Para Mapa"}, description = "{{functionToMap}}", returnType = ObjectType.MAP)
-  public static final Var toMap(
-      @ParamMetaData(type = ObjectType.OBJECT, description = "{{valueToBeRead}}") Var valueToBeRead)
-      throws Exception {
-    Object obj = null;
-    String content = "";
-    Gson c = new Gson();
-    if (valueToBeRead.getObject() instanceof String) {
-      content = valueToBeRead.getObjectAsString();
-    } else if (valueToBeRead.getObject() instanceof FileInputStream) {
-      content = cronapi.io.Operations.fileReadAll(valueToBeRead).getObjectAsString();
     }
 
-    if (content.startsWith("[")) {
-      obj = c.fromJson(content, List.class);
-    } else {
-      obj = c.fromJson(content, Map.class);
+    @AfterEach
+     void tearDown() {
+        booksJsonConvert = null;
+        booksJson = null;
     }
 
-    return Var.valueOf(obj);
-  }
+    @Test
+     void testCreateObjectJson() throws Exception {
+        assertTrue(createObjectJson().getObject() instanceof JsonObject);
+    }
 
-  @CronapiMetaData(type = "function", name = "{{JSONToXML}}", nameTags = {
-          "xml","JSON" }, description = "{{JSONToXMLDescription}}", params = {
-          "{{XMLOpenFromStringParam0}}" }, paramsType = { ObjectType.OBJECT }, returnType = ObjectType.XML)
-  public static final Var toXml(
-          @ParamMetaData(type = ObjectType.OBJECT, description = "{{JSONTOXMLValueToBeRead}}") Var json)
-          throws Exception {
-    org.json.JSONObject jsonFileObject = new org.json.JSONObject(json.getObjectAsString());
-    String xml = "<?xml version=\"1.0\" encoding=\"ISO-8859-15\"?>\n<root>"
-            .concat(org.json.XML.toString(jsonFileObject))
-            .concat("</root>");
-    return cronapi.xml.Operations.xmlFromStrng(Var.valueOf(xml));
-  }
+    @Test
+     void testDeleteObjectFromJson() throws Exception {
+        deleteObjectFromJson(Var.valueOf(booksJson), Var.valueOf("store"));
+        assertEquals(booksJson.getObjectAsJson().getAsJsonObject().get("expensive").toString(), "10");
+    }
+
+    @Test
+     void testGetJsonOrMapField() throws Exception {
+        Var retorno = getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
+        assertEquals(retorno.getObjectAsString(), "10");
+        retorno = getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("book.category"));
+        assertNull(retorno.getObject());
+
+        DataSource ds = Mockito.mock(DataSource.class);
+        Mockito.when(ds.getObject()).thenReturn(Mockito.mock(DataSource.class));
+        retorno = getJsonOrMapField(Var.valueOf(ds),Var.valueOf("book.category"));
+        assertNull(retorno.getObject());
+
+        String json = "{\n" +
+                "   \"foo\" : \"foo\",\n" +
+                "   \"bar\" : 10,\n" +
+                "   \"baz\" : true\n" +
+                "}";
+
+        retorno = getJsonOrMapField(Var.valueOf(json), Var.valueOf("$"));
+        assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
+    }
+
+    @Test
+     void testSetJsonOrMapField() throws Exception {
+        Var retorno = getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
+        assertEquals(retorno.getObjectAsString(), "10");
+        setJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"), Var.valueOf("11"));
+        retorno = getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("expensive"));
+        assertEquals(retorno.getObjectAsString(), "11");
+        setJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("store.bicycle.color"), Var.valueOf("black"));
+        retorno = getJsonOrMapField(Var.valueOf(booksJson),Var.valueOf("store.bicycle.color"));
+        assertEquals(retorno.getObjectAsString(), "black");
+        retorno = getJsonOrMapField(Var.valueOf(getJson()), Var.valueOf("$"));
+        assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
+        setJsonOrMapField(Var.valueOf(((JsonObject)retorno.getObject())),Var.valueOf("bar"), Var.valueOf("1"));
+        retorno = getJsonOrMapField(retorno,Var.valueOf("bar"));
+        assertEquals(retorno.getObjectAsString(), "1");
+    }
+
+    @Test()
+     void testSetJsonOrMapFieldErro() throws Exception {
+        DataSource ds = Mockito.mock(DataSource.class);
+        Mockito.when(ds.getObject()).thenReturn(Mockito.mock(DataSource.class));
+        assertThrows(ClassCastException.class, () -> { setJsonOrMapField(Var.valueOf(ds), Var.valueOf("store.bicycle.color"), Var.valueOf("2")); });
+    }
+
+    @Test
+     void testToJson() throws Exception {
+        InputStream booksInput = getClass().getResourceAsStream("/books.json");
+        Var booksJsonNovo = toJson(Var.valueOf(IOUtils.toString(booksInput)));
+        assertTrue(booksJsonNovo.getObject() instanceof JsonObject);
+    }
+
+    @Test
+     void testToList() throws Exception {
+        Var retorno = toList(Var.valueOf(getJson()));
+        retorno = getJsonOrMapField(retorno, Var.valueOf("$"));
+        assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
+    }
+
+    @Test
+     void testToMap() throws Exception {
+
+        Var retorno = toMap(Var.valueOf(getJson()));
+        retorno = getJsonOrMapField(retorno, Var.valueOf("$"));
+        assertEquals(((JsonObject)retorno.getObject()).get("foo").getAsString(), "foo");
+        retorno = toMap(Var.valueOf(gerJsonToMap()));
+        assertTrue(retorno.getObject() instanceof List);
+        InputStream fileInputStream = new FileInputStream(getClass().getResource("/books.json").getPath());
+        Var booksJsonNovo = toMap(Var.valueOf(fileInputStream));
+        assertTrue(booksJsonNovo.getObject() instanceof LinkedTreeMap);
+    }
+
+    @Test
+     void testToXml() throws Exception {
+        assertTrue(toXml(booksJsonConvert).getObject() instanceof Document);
+    }
 
 }
