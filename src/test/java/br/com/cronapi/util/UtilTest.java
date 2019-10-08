@@ -157,4 +157,78 @@ public class UtilTest {
         Assert.assertEquals(retorno.getObjectAsString(), md5);
     }
 
+        Var data = Operations.getURLFromOthers(method, contentType, address, params, cookieContainer, postData);
+        Assert.assertFalse(data.isEmptyOrNull());
+    }
+
+    @Test
+    public void hasParamsPatch() throws Exception {
+        Var method = Var.valueOf("PATCH");
+        Var contentType = Var.valueOf("application/json");
+        Var address = Var.valueOf("https://reqres.in/api/users/2");
+        Var params = Var.valueOf(cronapi.map.Operations.createObjectMapWith(Var.valueOf("name", Var.valueOf("morpheus"))));
+        Var cookieContainer = Var.valueOf(Var.VAR_NULL);
+        Var postData = Var.valueOf(cronapi.map.Operations.createObjectMapWith(Var.valueOf("job", Var.valueOf("zion resident"))));
+        Var data = Operations.getURLFromOthers(method, contentType, address, params, cookieContainer, postData);
+        Assert.assertFalse(data.isEmptyOrNull());
+    }
+
+    @Test
+    public void hasParamsGet() throws Exception {
+        Var method = Var.valueOf("GET");
+        Var contentType = Var.valueOf("application/json");
+        Var address = Var.valueOf("https://reqres.in/api/users/2");
+        Var params = Var.valueOf(cronapi.map.Operations.createObjectMapWith(Var.valueOf("name", Var.valueOf("morpheus"))));
+        Var cookieContainer = Var.valueOf(Var.VAR_NULL);
+        Var postData = Var.valueOf(cronapi.map.Operations.createObjectMapWith(Var.valueOf("job", Var.valueOf("zion resident"))));
+        Var data = Operations.getURLFromOthers(method, contentType, address, params, cookieContainer, postData);
+        Assert.assertFalse(data.isEmptyOrNull());
+    }
+
+    @Test
+    public void getCurrentUserName() throws Exception {
+        Assert.assertNull(Operations.getCurrentUserName().getObject());
+        RestClient.setRestClient(Mockito.mock(RestClient.class));
+        RestClient.getRestClient().setUser(new User(MOCK_TESTE, MOCK_TESTE, new ArrayList<>()));
+        Mockito.when(RestClient.getRestClient().getUser()).thenReturn(new User(MOCK_TESTE, MOCK_TESTE, new ArrayList<>()));
+        Assert.assertEquals(Operations.getCurrentUserName().getObjectAsString(), MOCK_TESTE);
+    }
+
+    @Test
+    public void random() throws Exception {
+        Var data = Operations.random(Var.valueOf("10"));
+        Assert.assertFalse(data.isEmptyOrNull());
+    }
+
+    @Test
+    public void safeNameForMethodBlockly() {
+        String data = Operations.safeNameForMethodBlockly(MOCK_TESTE);
+        Assert.assertEquals(data, MOCK_TESTE);
+        data = Operations.safeNameForMethodBlockly(null);
+        Assert.assertEquals(data, "unnamed");
+        data = Operations.safeNameForMethodBlockly("123456789");
+        Assert.assertEquals(data, "my_123456789");
+        String stringValue = "Ã§^aÃ£";//ç^aã -- ISO-8859-1
+        String deserializedStringValue = new String(stringValue.getBytes(StandardCharsets.ISO_8859_1));
+        data = Operations.safeNameForMethodBlockly(deserializedStringValue);
+        Assert.assertEquals(data, "_C3_A7_5Ea_C3_A3");
+    }
+
+    @Test
+    public void testPassword() throws Exception {
+        BCryptPasswordEncoder a = new BCryptPasswordEncoder();
+        Var data = Operations.matchesencryptPassword(Var.valueOf("cronapp"), Var.valueOf(a.encode("cronapp")));
+        Assert.assertTrue(data.getObjectAsBoolean());
+        data = Operations.encryptPassword(Var.valueOf("cronapp"));
+        data = Operations.matchesencryptPassword(Var.valueOf("cronapp"), data);
+        Assert.assertTrue(data.getObjectAsBoolean());
+    }
+
+    @Test
+    public void encodeMD5() throws Exception {
+        String md5 = Utils.encodeMD5("cronapp");
+        Var retorno = Operations.encodeMD5(Var.valueOf("cronapp"));
+        Assert.assertEquals(retorno.getObjectAsString(), md5);
+    }
+
 }
