@@ -5,9 +5,8 @@ import com.jayway.jsonpath.JsonPath;
 import cronapi.Var;
 import cronapi.list.Operations;
 import org.apache.commons.io.IOUtils;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -16,13 +15,14 @@ import java.util.List;
 
 import static cronapi.json.Operations.GSON_CONFIGURATION;
 import static cronapi.json.Operations.toJson;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ListTest {
 
   private static Var BOOKS_JSON;
 
-  @BeforeClass
-  public static void oneTimeSetUp() throws Exception {
+  @BeforeEach
+  public void oneTimeSetUp() throws Exception {
     //
     try (InputStream booksInput = ListTest.class.getResourceAsStream("/books.json")) {
       String json = JsonPath.using(GSON_CONFIGURATION)
@@ -36,9 +36,9 @@ public class ListTest {
   @Test
   public void newListShouldReturnEmptyList() {
     Var newListVar = Operations.newList();
-    Assert.assertTrue(newListVar.getObject() instanceof List);
+    assertTrue(newListVar.getObject() instanceof List);
     List newList = (List) newListVar.getObject();
-    Assert.assertEquals(newList.size(), 0);
+    assertEquals(newList.size(), 0);
   }
 
   @Test
@@ -46,35 +46,57 @@ public class ListTest {
     List<Object> list = new ArrayList<>();
     list.add(new Object());
     Var listVar = Var.valueOf(list);
-    Assert.assertEquals(Operations.size(listVar).getObjectAsInt().intValue(), 1);
+    assertEquals(Operations.size(listVar).getObjectAsInt().intValue(), 1);
   }
 
   @Test
   public void sizeFromJsonTest() {
     Var listVar = Var.valueOf(BOOKS_JSON);
-    Assert.assertEquals(Operations.size(listVar).getObjectAsInt().intValue(), 4);
+    assertEquals(Operations.size(listVar).getObjectAsInt().intValue(), 4);
   }
 
   @Test
   public void listFromTextTest() {
     Var listVar = Operations.getListFromText(Var.valueOf("Cronapp/Platform"), Var.valueOf("/"));
-    Assert.assertTrue(listVar.getObject() instanceof List);
-    Assert.assertEquals(Operations.size(listVar).getObjectAsInt().intValue(), 2);
+    assertTrue(listVar.getObject() instanceof List);
+    assertEquals(Operations.size(listVar).getObjectAsInt().intValue(), 2);
   }
 
   @Test
   public void listFromTextUsingListAsParameterTest() {
     Var listParam = Var.valueOf(Arrays.asList("Cronapp", "/", "Platform"));
     Var listVar = Operations.getListFromText(listParam, Var.valueOf("/"));
-    Assert.assertTrue(listVar.getObject() instanceof List);
-    Assert.assertEquals(Operations.size(listVar).getObjectAsInt().intValue(), 2);
+    assertTrue(listVar.getObject() instanceof List);
+    assertEquals(Operations.size(listVar).getObjectAsInt().intValue(), 2);
   }
 
   @Test
   public void listFromTextNullAsParameterTest() {
     Var listVar = Operations.getListFromText(Var.VAR_NULL, Var.VAR_NULL);
-    Assert.assertTrue(listVar.getObject() instanceof List);
-    Assert.assertEquals(Operations.size(listVar).getObjectAsInt().intValue(), 1);
+    assertTrue(listVar.getObject() instanceof List);
+    assertEquals(Operations.size(listVar).getObjectAsInt().intValue(), 1);
   }
+
+  @Test
+  public void testSize() throws Exception {
+    assertEquals(Operations.size(Var.valueOf(null)).getObjectAsLong(), Var.valueOf(0L).getObjectAsLong());
+    assertEquals(Operations.size(Var.valueOf("teste")).getObjectAsLong(), Var.valueOf(1L).getObjectAsLong());
+    // isEmpty
+    assertFalse(Operations.isEmpty(Var.valueOf("teste")).getObjectAsBoolean());
+    assertTrue(Operations.isEmpty(Var.valueOf(null)).getObjectAsBoolean());
+  }
+
+  @Test
+  public void testNewList() throws Exception {
+    Var list = Operations.newList(Var.valueOf("1"), Var.valueOf("2"), Var.valueOf("3"));
+    assertEquals(list.getObjectAsList().size(), 3);
+  }
+
+  @Test
+  public void testNewListRepeat() throws Exception {
+    Var list = Operations.newListRepeat(Var.valueOf("1"), Var.valueOf("2"));
+    assertEquals(list.getObjectAsList().size(), 2);
+  }
+
 
 }

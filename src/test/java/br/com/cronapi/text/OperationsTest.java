@@ -9,7 +9,7 @@ public class OperationsTest {
 
     @Test
     public void replaceNull() {
-        Assert.assertNull(Operations.replace(Var.VAR_NULL, Var.VAR_NULL, Var.VAR_NULL).getObject());
+        assertNull(Operations.replace(Var.VAR_NULL, Var.VAR_NULL, Var.VAR_NULL).getObject());
         Assert.assertNull(Operations.replace(Var.valueOf("teste x testes"), Var.VAR_NULL, Var.VAR_NULL).getObject());
         Assert.assertNull(Operations.replace(Var.valueOf("teste x testes"), Var.valueOf("x"), Var.VAR_NULL).getObject());
         Assert.assertNull(Operations.replace(Var.VAR_NULL, Var.valueOf("x"), Var.valueOf("teste x testes")).getObject());
