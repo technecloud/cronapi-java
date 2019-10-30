@@ -327,9 +327,9 @@ public class DataSource implements JsonSerializable {
       if ((this.pageRequest != null) && (!isCount)) {
         if (info != null && info.first != null) {
           query.setFirstResult(info.first);
-        }else if(this.useOffset) {
+        } else if (this.useOffset) {
           query.setFirstResult(this.pageRequest.getPageNumber());
-        }else{
+        } else {
           query.setFirstResult(this.pageRequest.getPageNumber() * this.pageRequest.getPageSize());
         }
         if (info != null && info.max != null) {
@@ -556,6 +556,23 @@ public class DataSource implements JsonSerializable {
     }
   }
 
+  public Object saveAfterCommit(AbstractSession session) {
+    try {
+      Object toSave;
+
+      if (this.insertedElement != null) {
+        toSave = this.insertedElement;
+        session.insertObject(toSave);
+      } else
+        toSave = this.getObject();
+
+      return toSave;
+
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public void delete(Var[] primaryKeys) {
     insert();
     int i = 0;
@@ -616,7 +633,6 @@ public class DataSource implements JsonSerializable {
   public void updateField(String fieldName, Object fieldValue) {
     Utils.updateFieldOnFiltered(getObject(), fieldName, fieldValue);
   }
-
 
 
   /**
@@ -1471,6 +1487,6 @@ public class DataSource implements JsonSerializable {
   }
 
   public void setUseOffset(boolean useOffset) {
-        this.useOffset = useOffset;
+    this.useOffset = useOffset;
   }
 }
