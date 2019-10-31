@@ -19,21 +19,28 @@ public class DatabaseQueryManager {
   private String id;
   private JsonObject query;
   private boolean isDatabase = true;
+  private String entity;
 
   public DatabaseQueryManager(final String id) {
     this.id = id;
     this.query = QueryManager.getQuery(id);
     this.isDatabase = this.query.get("sourceType").getAsString().equals("entityFullName");
+    if (this.isDatabase) {
+      this.entity = this.query.get("entityFullName").getAsString();
+    }
   }
 
   public DatabaseQueryManager(final String id, final boolean isolatedTransaction) {
-    this.id = id;
+    this(id);
     this.isolatedTransaction = isolatedTransaction;
-    this.query = QueryManager.getQuery(id);
   }
 
   public boolean isDatabase() {
     return this.isDatabase;
+  }
+
+  public String getEntity() {
+    return entity;
   }
 
   public Var get(final Object... params) throws Exception {

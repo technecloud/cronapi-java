@@ -93,6 +93,7 @@ public class HistoryListener extends DescriptorEventAdapter {
       if (logManager != null) {
 
         Object object = event.getObject();
+        String namespace = object.getClass().getPackage().getName().replace(".entity", "");
 
         GsonBuilder builder = new GsonBuilder().addSerializationExclusionStrategy(new ExclusionStrategy() {
           @Override
@@ -138,7 +139,11 @@ public class HistoryListener extends DescriptorEventAdapter {
         auditLog.set("server", HistoryListener.CURRENT_IP);
         auditLog.set("affectedFields", affected != null ? affected.toString() : null);
 
-        logManager.insertAfterCommit(event.getSession(), auditLog);
+        if (logManager.isDatabase() && logManager.getEntity().startsWith(namespace+".")) {
+          logManager.insertAfterCommit(event.getSession(), auditLog);
+        } else {
+          logManager.insert(auditLog);
+        }
 
       }
     } catch (Exception e) {
