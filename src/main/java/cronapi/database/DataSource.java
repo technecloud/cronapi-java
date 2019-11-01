@@ -24,8 +24,10 @@ import org.eclipse.persistence.internal.jpa.EJBQueryImpl;
 import org.eclipse.persistence.internal.jpa.EntityManagerImpl;
 import org.eclipse.persistence.internal.jpa.jpql.HermesParser;
 import org.eclipse.persistence.internal.jpa.metamodel.EntityTypeImpl;
+import org.eclipse.persistence.internal.queries.ReportItem;
 import org.eclipse.persistence.internal.sessions.AbstractSession;
 import org.eclipse.persistence.queries.DatabaseQuery;
+import org.eclipse.persistence.queries.ReportQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -77,6 +79,7 @@ public class DataSource implements JsonSerializable {
   private boolean useOdataRequest = false;
   private boolean isEor = false;
   private boolean useOffset = false;
+  private DatabaseQuery queryParsed;
 
   /**
    * Init a datasource with a page size equals 100
@@ -365,6 +368,8 @@ public class DataSource implements JsonSerializable {
             total = (Long) countResult[0];
           }
         }
+
+        this.queryParsed = queryParsed;
       }
 
       this.page = new PageImpl(resultsInPage, this.pageRequest, total);
@@ -1308,7 +1313,30 @@ public class DataSource implements JsonSerializable {
 
   @Override
   public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-    gen.writeObject(this.page.getContent());
+    if (queryParsed instanceof ReportQuery) {
+      gen.writeStartArray();
+      for (Object row : this.page.getContent()) {
+        if (row.getClass().isArray()) {
+          Object[] array = (Object[]) row;
+          gen.writeStartObject();
+          int i = 0;
+          for (ReportItem item : ((ReportQuery) queryParsed).getItems()) {
+            String name = item.getName();
+
+            if (name == null || name.isEmpty()) {
+              name = "expression";
+            }
+            gen.writeFieldName(name);
+            gen.writeObject(array[i]);
+            i++;
+          }
+          gen.writeEndObject();
+        }
+      }
+      gen.writeEndArray();
+    } else {
+      gen.writeObject(this.page.getContent());
+    }
   }
 
   @Override
