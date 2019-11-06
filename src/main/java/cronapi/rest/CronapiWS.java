@@ -4,18 +4,18 @@ import cronapi.RestClient;
 import cronapi.RestResult;
 import cronapi.Var;
 import cronapi.database.TransactionManager;
-import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.jws.WebMethod;
+import javax.jws.WebService;
 import java.util.concurrent.Callable;
 
-@RequestMapping(value = "/api/cronapi")
+@WebService(targetNamespace = "http://cronapi")
 public class CronapiWS {
 
   @WebMethod
   public Var ws(String clazz, Var[] params) throws Exception {
     return runIntoTransaction(() -> {
-      return cronapi.util.Operations.callBlockly(new Var(clazz), true, RestClient.getRestClient().getMethod(), params);
+      return cronapi.util.Operations.callBlockly(new Var(clazz), true, "soap", params);
     }).getValue();
   }
 
