@@ -1,11 +1,11 @@
 package cronapi.database;
 
 import cronapi.i18n.Messages;
+import org.eclipse.persistence.annotations.Convert;
 import org.eclipse.persistence.descriptors.DescriptorEvent;
 import org.eclipse.persistence.descriptors.DescriptorEventAdapter;
 import org.eclipse.persistence.internal.helper.DatabaseField;
 
-import javax.persistence.Convert;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import java.lang.reflect.Field;
@@ -24,7 +24,7 @@ public class VersionListener extends DescriptorEventAdapter {
       if (!versionChecked) {
         for (Field field : event.getObject().getClass().getDeclaredFields()) {
           Convert convert = field.getAnnotation(Convert.class);
-          if (convert != null && convert.converter() == VersionConverter.class) {
+          if (convert != null && convert.value().equals("version")) {
             if (versionFields == null) {
               versionFields = new LinkedList<>();
             }
@@ -75,7 +75,6 @@ public class VersionListener extends DescriptorEventAdapter {
             if (current == null) {
               throw new RuntimeException(Messages.getString("optimisticLockingError"));
             }
-            //Object current = em.find(event.getObject().getClass(), event.getSession().getId(event.getObject()));
             Object currentValue = field.get(current);
             Object newValue = field.get(event.getObject());
             if (!Objects.equals(currentValue, newValue)) {
