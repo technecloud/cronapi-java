@@ -47,7 +47,7 @@ public class ErrorResponse {
   private static JsonObject loadJSON() {
     ClassLoader classLoader = QueryManager.class.getClassLoader();
     try (InputStream stream = classLoader.getResourceAsStream("cronapi/database/databases.json")) {
-      InputStreamReader reader = new InputStreamReader(stream);
+      InputStreamReader reader = new InputStreamReader(stream, "UTF-8");
       JsonElement jsonElement = new JsonParser().parse(reader);
       return jsonElement.getAsJsonObject();
     }
@@ -171,12 +171,34 @@ public class ErrorResponse {
     final String message = getExceptionMessage(ex, method);
     return new RuntimeException(message, ex);
   }
-  
+
   public static String getExceptionMessage(Throwable ex, String method) {
+    return getExceptionMessage(ex, method, null);
+  }
+
+  public static String getExceptionMessage(Throwable ex, String method, String entity) {
     
     String message = null;
     
     if(ex != null) {
+
+      if (entity != null) {
+        JsonObject obj = null;
+        try {
+          obj = QueryManager.getQuery(entity);
+        } catch (Exception e) {
+          //NoCommand
+        }
+
+        if (obj != null && !QueryManager.isNull(obj.get("events")) && !QueryManager.isNull(obj.get("events").getAsJsonObject().get("onError"))) {
+          try {
+            QueryManager.executeEvent(obj, "onError");
+          } catch (Exception e) {
+            ex = e;
+          }
+        }
+      }
+
       if(ex.getMessage() != null && !ex.getMessage().trim().isEmpty() && !hasIgnoredException(ex)) {
         message = ex.getMessage();
         Matcher matcher = EXCEPTION_NAME_PATTERN.matcher(message);
