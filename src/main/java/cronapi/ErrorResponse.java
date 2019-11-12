@@ -5,6 +5,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -187,12 +189,22 @@ public class ErrorResponse {
         try {
           obj = QueryManager.getQuery(entity);
         } catch (Exception e) {
-          //NoCommand
+          //NoCommande
         }
 
         if (obj != null && !QueryManager.isNull(obj.get("events")) && !QueryManager.isNull(obj.get("events").getAsJsonObject().get("onError"))) {
           try {
-            QueryManager.executeEvent(obj, "onError");
+            Map<String, Var> values = new LinkedHashMap<>();
+            values.put("exception", Var.valueOf(ex));
+            values.put("exceptionMessage", Var.valueOf(ex.getMessage()));
+            values.put("data", Var.valueOf(RestClient.getRestClient().getEntity()));
+            values.put("primaryKeys", Var.valueOf(RestClient.getRestClient().getKeys()));
+            if (RestClient.getRestClient().getKeys() != null && RestClient.getRestClient().getKeys().size() > 0) {
+              values.put("primaryKey", Var.valueOf(RestClient.getRestClient().getKeys().get(0)));
+            }
+            values.put("entityName", Var.valueOf(entity));
+            values.put("eventName", Var.valueOf("onError"));
+            QueryManager.executeEvent(obj, "onError", values);
           } catch (Exception e) {
             ex = e;
           }
