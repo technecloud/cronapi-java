@@ -16,8 +16,6 @@ import javax.persistence.Query;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Classe que representa operações de acesso ao banco
