@@ -16,6 +16,8 @@ import javax.persistence.Query;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Classe que representa operações de acesso ao banco
@@ -339,6 +341,7 @@ public class Operations {
         "{{entity}}", "{{query}}", "{{paramsQueryTuples}}" }, paramsType = { ObjectType.STRING, ObjectType.STRING,
         ObjectType.LIST }, returnType = ObjectType.DATASET, arbitraryParams = true, wizard = "procedures_sql_command_callreturn")
   public static Var executeNativeQuery(Var entity, Var query, Var... params) throws Exception {
+    query = replaceParameters(query);
     Query nativeQuery = createNativeQuery(entity, query);
     bindParameters(nativeQuery, params);
     return Var.valueOf(nativeQuery.getResultList());
@@ -349,6 +352,7 @@ public class Operations {
          params = { "{{entity}}", "{{query}}", "{{paramsQueryTuples}}" }, paramsType = { ObjectType.STRING, ObjectType.STRING,
          ObjectType.LIST }, returnType = ObjectType.LONG, arbitraryParams = true, wizard = "procedures_sql_command_callreturn")
   public static Var executeNativeQueryUpdate(Var entity, Var query, Var... params) throws Exception {
+    query = replaceParameters(query);
     Query nativeQuery = createNativeQuery(entity, query);
     bindParameters(nativeQuery, params);
     return Var.valueOf(nativeQuery.executeUpdate());
@@ -362,12 +366,21 @@ public class Operations {
     return entityManager.createNativeQuery(query.getObjectAsString(), domainClass);
   }
 
+  private static Var replaceParameters(Var query) {
+    String regex = "(:[\\w]+)";
+    String replacement = "?";
+    String parameterizedQuery = query.getObjectAsString();
+    String positionQuery = parameterizedQuery.replaceAll(regex, replacement);
+    return Var.valueOf(positionQuery);
+  }
+
   private static void bindParameters(Query query, Var... params) {
     if (params == null || params.length == 0) {
       return;
     }
-    for (Var param : params) {
-      query.setParameter(param.getId(), param.getObjectAsString());
+    for (int i = 0; i < params.length; i++) {
+      int position = i + 1;
+      query.setParameter(position, params[i].getObject());
     }
   }
 
