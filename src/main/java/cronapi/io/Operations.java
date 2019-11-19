@@ -679,14 +679,12 @@ public class Operations {
   )
   public static Var loadPrivateKeyFile(Var privateKeyFile)
       throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
-    PrivateKey privateKey;
-    {
-      byte[] bytes = Files.readAllBytes(Paths.get(privateKeyFile.getObjectAsFile().getPath()));
-      PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(bytes);
-      KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-      privateKey = keyFactory.generatePrivate(keySpec);
-    }
-    return Var.valueOf(privateKey);
+
+    byte[] bytes = Files.readAllBytes(Paths.get(privateKeyFile.getObjectAsFile().getPath()));
+    PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(bytes);
+    KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+
+    return Var.valueOf(keyFactory.generatePrivate(keySpec));
   }
 
   @CronapiMetaData(type = "function",
@@ -699,14 +697,12 @@ public class Operations {
   )
   public static Var loadPublicKeyFile(Var publicKeyFile)
       throws NoSuchAlgorithmException, IOException, InvalidKeySpecException {
-    PublicKey publicKey;
-    {
-      byte[] bytes = Files.readAllBytes(Paths.get(publicKeyFile.getObjectAsFile().getPath()));
-      X509EncodedKeySpec keySpec = new X509EncodedKeySpec(bytes);
-      KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-      publicKey = keyFactory.generatePublic(keySpec);
-    }
-    return Var.valueOf(publicKey);
+
+    byte[] bytes = Files.readAllBytes(Paths.get(publicKeyFile.getObjectAsFile().getPath()));
+    X509EncodedKeySpec keySpec = new X509EncodedKeySpec(bytes);
+    KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+
+    return Var.valueOf(keyFactory.generatePublic(keySpec));
   }
 
   @CronapiMetaData(type = "function",
@@ -717,10 +713,11 @@ public class Operations {
       params = { "{{file}}", "{{privateKey}}" },
       paramsType = { ObjectType.OBJECT, ObjectType.OBJECT }
   )
-  public static Var signFile(Var file, PrivateKey privateKey)
+  public static Var signFile(Var file, Var privateKey)
       throws InvalidKeyException, SignatureException, NoSuchAlgorithmException, IOException {
+
     Signature rsa = Signature.getInstance("SHA1withRSA");
-    rsa.initSign(privateKey);
+    rsa.initSign(privateKey.getTypedObject(PrivateKey.class));
     rsa.update(file.getObjectAsByteArray());
     File newFile = new File(file.getObjectAsFile().getName() + "signed");
     ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(newFile));
@@ -737,10 +734,11 @@ public class Operations {
       params = { "{{signedObject}}","{{signature}}","{{publicKey}}" },
       paramsType = { ObjectType.OBJECT,ObjectType.OBJECT,ObjectType.OBJECT }
   )
-  public static Var verifySignature(Var file, PublicKey publicKey)
+  public static Var verifySignature(Var file, Var publicKey)
       throws InvalidKeyException, SignatureException, NoSuchAlgorithmException {
+
     Signature rsaSignature = Signature.getInstance("SHA1withRSA");
-    rsaSignature.initVerify(publicKey);
+    rsaSignature.initVerify(publicKey.getTypedObject(PublicKey.class));
     rsaSignature.update(file.getObjectAsByteArray());
     return Var.valueOf(rsaSignature.verify(Signature.getInstance("SHA1withRSA").sign()));
   }
