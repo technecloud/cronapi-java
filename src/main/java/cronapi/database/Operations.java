@@ -350,16 +350,22 @@ public class Operations {
          params = { "{{entity}}", "{{query}}", "{{paramsQueryTuples}}" }, paramsType = { ObjectType.STRING, ObjectType.STRING,
          ObjectType.LIST }, returnType = ObjectType.LONG, arbitraryParams = true, wizard = "procedures_sql_command_callreturn")
   public static Var executeNativeQueryUpdate(Var entity, Var query, Var... params) throws Exception {
-    Query nativeQuery = sanitizeNativeQuery(entity, query, params);
+    Query nativeQuery = sanitizeNativeQuery(null, query, params);
     return Var.valueOf(nativeQuery.executeUpdate());
   }
 
   private static Query createNativeQuery(Var entity, String query) throws Exception {
     String namespace = entity.getObjectAsString().split("\\.")[0];
-    Class<?> domainClass = Class.forName(entity.getObjectAsString());
+    Class<?> domainClass = null;
+    if (entity != null)
+      domainClass = Class.forName(entity.getObjectAsString());
     EntityManagerFactory factory = Persistence.createEntityManagerFactory(namespace);
     EntityManager entityManager = factory.createEntityManager();
-    return entityManager.createNativeQuery(query, domainClass);
+    if (domainClass!= null)
+      return entityManager.createNativeQuery(query, domainClass);
+    else
+      return entityManager.createNativeQuery(query);
+
   }
 
   private static Query sanitizeNativeQuery(Var entity, Var query, Var... params) throws Exception {
