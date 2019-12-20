@@ -89,7 +89,7 @@ public class AppConfig {
         return elem.getAsString();
       }
     }
-    return "6LdA_8QUAAAAACOJSHaiHUTNmN91ZstrhEptlEzm";
+    return "";
   }
 
   public static String token() {
