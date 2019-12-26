@@ -1,15 +1,23 @@
 package cronapi.report;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
+import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
+import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.stimulsoft.base.exception.StiException;
 import com.stimulsoft.base.serializing.StiDeserializationException;
+import com.stimulsoft.report.StiExportManager;
 import com.stimulsoft.report.StiOptions.Services;
 import com.stimulsoft.report.StiReport;
 import com.stimulsoft.report.StiSerializeManager;
 import com.stimulsoft.report.enums.StiExportFormat;
 import com.stimulsoft.report.export.service.StiExportService;
+import com.stimulsoft.report.export.settings.StiPdfExportSettings;
 import cronapi.CronapiConfigurator;
+import cronapi.CronapiException;
 import cronapi.QueryManager;
 import cronapi.report.DataSourcesInBand.FieldParam;
 import cronapi.report.DataSourcesInBand.ParamValue;
@@ -29,6 +37,10 @@ import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JRExpression;
 import net.sf.jasperreports.engine.design.JasperDesign;
 import net.sf.jasperreports.engine.xml.JRXmlLoader;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.olingo.odata2.client.api.ODataClient;
+import org.apache.olingo.odata2.client.api.uri.URIBuilder;
 import org.eclipse.persistence.config.PersistenceUnitProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,102 +63,113 @@ import java.util.stream.Stream;
 
 @Service
 public class ReportService {
-
   static {
+    com.stimulsoft.base.licenses.StiLicense.setKey("" +
+        "6vJhGtLLLz2GNviWmUTrhSqnOItdDwjBylQzQcAOiHl4mF8Yy+Msl8Mjp+nbkDv52zYAIT+dpsXLWIrkoWUKLuRM23" +
+        "NSg8pIvYh6tBo4G/ZbeRpxW0S6pW7OFk7po8BkktyA+vHtfRKYFAO4H+qoK6JBlRbQjOtO9vDgdcIfkLIfhwrbQhvh" +
+        "yaJMnkga7SqJ2c181/qsG90YkxgF+o525F67z/Ar0uCIoz6UgebnfFX44dfr3k37tlVwgEKtHLIZhxpUddmhh10jz6" +
+        "LmMpOsumJtnBUxANBuvhbXwVvssIYxLAaltqYc9DvkgetJQtinc23zZp81zE9D/Sf9lXhKu6oplHsQVURDVC6gZ+ke" +
+        "yeiHbI6DM8xf1TV2BjM3V5+C23cyQ9F3fFUM/lMPto9CZyJZTmqRnrckO/dtQ88Q2ESCQXqNOBEf0rL9jlJlWLpK/Z" +
+        "LwcTudISL1jW5Nd78IfXr14ejq18wnKYWsYMOq2Sd1u7cBvjt7bTXvkZpb6Lkyqlg2vKNnYcdf3kBSS94fhBFcHKQs" +
+        "TSq7F3njQRSsqXO1Tzu8/CBrBqx+/k7aow2DF4Vap0PFN/2/f0WGglroGh6vFk/XF0vH5fZvrDg/Edg1YzNxHuOVJJ" +
+        "ZhM3Il11eiQejV2N9V4LPh1O0Sergi1pb+IRlIzCWIA+8Zykjqn97OtF+oxVvIZdXRkIWEa00EmuJuljPCC5pKMMDq" +
+        "kixwRw=="
+    );
+
     Services.getDataSource().add(StiODataSource.class);
     Services.getDataBases().add(StiODataDatabase.class);
   }
 
-	private static final Logger log = LoggerFactory.getLogger(ReportService.class);
+  private static final Logger log = LoggerFactory.getLogger(ReportService.class);
 
-	private final ClassLoader loader;
+  private final ClassLoader loader;
 
-	ReportService() {
-		this.loader = Thread.currentThread().getContextClassLoader();
-	}
+  ReportService() {
+    this.loader = Thread.currentThread().getContextClassLoader();
+  }
 
-	public ReportFront getReport(String reportName) {
-		ReportFront reportResult = new ReportFront(reportName);
-		try {
-			if (reportName.contains("jrxml")) {
-				log.info("Report in design mode, build the parameters...");
-				InputStream inputStream = this.getInputStream(reportName);
-				JasperDesign jasperDesign = JRXmlLoader.load(inputStream);
-				Stream.of(jasperDesign.getParameters()).filter(jrParameter -> !jrParameter.isSystemDefined())
-						.filter(jrParameter -> !jrParameter.getName().contains("image_"))
-						.filter(jrParameter -> !jrParameter.getName().contains("sub_")).forEach(jrParameter -> {
-					Parameter parameter = new Parameter();
-					parameter.setName(jrParameter.getName());
-					parameter.setType(ParameterType.toType(jrParameter.getValueClass()));
-					parameter.setDescription(jrParameter.getDescription());
-					JRExpression expression = jrParameter.getDefaultValueExpression();
-					if (expression != null) {
+  public ReportFront getReport(String reportName) {
+    ReportFront reportResult = new ReportFront(reportName);
+    try {
+      if (reportName.contains("jrxml")) {
+        log.info("Report in design mode, build the parameters...");
+        InputStream inputStream = this.getInputStream(reportName);
+        JasperDesign jasperDesign = JRXmlLoader.load(inputStream);
+        Stream.of(jasperDesign.getParameters()).filter(jrParameter -> !jrParameter.isSystemDefined())
+            .filter(jrParameter -> !jrParameter.getName().contains("image_"))
+            .filter(jrParameter -> !jrParameter.getName().contains("sub_")).forEach(jrParameter -> {
+          Parameter parameter = new Parameter();
+          parameter.setName(jrParameter.getName());
+          parameter.setType(ParameterType.toType(jrParameter.getValueClass()));
+          parameter.setDescription(jrParameter.getDescription());
+          JRExpression expression = jrParameter.getDefaultValueExpression();
+          if (expression != null) {
             parameter.setValue(expression.getText());
           }
-					reportResult.addParameter(parameter);
-				});
-			}
-		} catch (JRException e) {
-			log.error("Problems to make JasperDesign object.");
-			throw new RuntimeException(e);
-		}
-		return reportResult;
-	}
+          reportResult.addParameter(parameter);
+        });
+      }
+    } catch (JRException e) {
+      log.error("Problems to make JasperDesign object.");
+      throw new RuntimeException(e);
+    }
+    return reportResult;
+  }
 
-	public String getContentReport(String reportName) {
-		try (InputStream inputStream = this.getInputStream(reportName)) {
-			try (BufferedReader buffer = new BufferedReader(new InputStreamReader(inputStream, CronapiConfigurator.ENCODING))) {
-				return buffer.lines().collect(Collectors.joining("\n"));
-			}
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
+  public String getContentReport(String reportName) {
+    try (InputStream inputStream = this.getInputStream(reportName)) {
+      try (BufferedReader buffer = new BufferedReader(new InputStreamReader(inputStream, CronapiConfigurator.ENCODING))) {
+        return buffer.lines().collect(Collectors.joining("\n"));
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
 
-	public DataSourcesInBand getDataSourcesParams(DataSourcesInBand dataSourcesInBand) {
-		dataSourcesInBand.getDatasources().forEach(dsp -> {
-			JsonObject currentCustomQuery = null;
-			try {
-				currentCustomQuery = QueryManager.getQuery(dsp.getCustomId());
-			} catch (Exception e) {
+  public DataSourcesInBand getDataSourcesParams(DataSourcesInBand dataSourcesInBand) {
+    dataSourcesInBand.getDatasources().forEach(dsp -> {
+      JsonObject currentCustomQuery = null;
+      try {
+        currentCustomQuery = QueryManager.getQuery(dsp.getCustomId());
+      } catch (Exception e) {
         log.error(e.getMessage());
-			}
-			List<ParamValue> dsParams = getDataSourceParamsFromCustomQuery(currentCustomQuery);
-			dsParams.forEach(param -> {
-				//Se nao existir nos parametros, adiciona
-				Optional<FieldParam> exist = dsp.getFieldParams().stream().filter(fp -> param.getFieldName().equals(fp.getField())).findAny();
-				if (!exist.isPresent()) {
+      }
+      List<ParamValue> dsParams = getDataSourceParamsFromCustomQuery(currentCustomQuery);
+      dsParams.forEach(param -> {
+        //Se nao existir nos parametros, adiciona
+        Optional<FieldParam> exist = dsp.getFieldParams().stream().filter(fp -> param.getFieldName().equals(fp.getField())).findAny();
+        if (!exist.isPresent()) {
           dsp.getFieldParams().add(new FieldParam(param.getFieldName(), param.getFieldName(), "String", ""));
         }
-				dsp.getQueryParams().add(new ParamValue(param.getFieldName(), ":" + param.getFieldName()));
-			});
-			if (dsp.getFieldParams().size() > 0) {
+        dsp.getQueryParams().add(new ParamValue(param.getFieldName(), ":" + param.getFieldName()));
+      });
+      if (dsp.getFieldParams().size() > 0) {
         dataSourcesInBand.setHasParam(true);
       }
-		});
-		return dataSourcesInBand;
-	}
+    });
+    return dataSourcesInBand;
+  }
 
-	public String getPDFAsFile(ReportFront reportFront) {
-		ReportExport result = this.getReportExport(reportFront);
+  public String getPDFAsFile(ReportFront reportFront) {
+    ReportExport result = this.getReportExport(reportFront);
     if (result == null) {
       return "";
     }
     result.exportReportToPdfFile();
-		return DownloadREST.getDownloadUrl(new File(result.getTargetFile()));
-	}
+    return DownloadREST.getDownloadUrl(new File(result.getTargetFile()));
+  }
 
-	public byte[] getPDF(ReportFront reportFront) {
-		ReportExport result = this.getReportExport(reportFront);
-		if (result == null) {
+  public byte[] getPDF(ReportFront reportFront) {
+    ReportExport result = this.getReportExport(reportFront);
+    if (result == null) {
       return new byte[0];
     }
-		return result.toPDF();
-	}
+    return result.toPDF();
+  }
 
-	ReportExport getReportExport(ReportFront reportFront, File file) {
-		ReportExport result = null;
-		File pdf;
+  ReportExport getReportExport(ReportFront reportFront, File file) {
+    ReportExport result = null;
+    File pdf;
     try {
       if (file == null) {
         pdf = DownloadREST.getTempFile(UUID.randomUUID().toString() + ".pdf");
@@ -212,33 +235,123 @@ public class ReportService {
       }
     }
     return result;
-	}
+  }
+
+  private static String parseParameter(String s, Map<String, String> values) {
+    if (s.startsWith(":")) {
+      String parameterName = s.substring(1);
+
+      if (values.containsKey(parameterName)) {
+        return "'" + StringEscapeUtils.escapeEcmaScript(values.get(parameterName)) + "'";
+      }
+
+      return "''";
+    }
+    return s;
+  }
+
+  private static String toFilter(JsonObject expressionJson, Map<String, String> values) {
+    JsonArray expressionArgs = expressionJson.getAsJsonArray("args");
+    JsonPrimitive expressionType = expressionJson.getAsJsonPrimitive("type");
+    JsonPrimitive expressionLeft = expressionJson.getAsJsonPrimitive("left");
+    JsonPrimitive expressionRight = expressionJson.getAsJsonPrimitive("right");
+
+    JsonArray args = expressionArgs == null ? new JsonArray() : expressionArgs;
+    String left = expressionLeft == null ? "" : parseParameter(expressionLeft.getAsString(), values);
+    String right = expressionRight == null ? "" : parseParameter(expressionRight.getAsString(), values);
+    String type = expressionType == null ? "" : expressionType.getAsString();
+
+    switch (type) {
+      case "%":
+        return "substringof(" + right + ", " + left + ")";
+      case "=":
+        return left + " eq " + right;
+      case "!=":
+        return left + " ne " + right;
+      case ">":
+        return left + " gt " + right;
+      case ">=":
+        return left + " ge " + right;
+      case "<":
+        return left + " lt " + right;
+      case "<=":
+        return left + " le " + right;
+      case "AND":
+      case "OR":
+        if (args.size() == 1) {
+          return toFilter(args.get(0).getAsJsonObject(), values);
+        } else if (args.size() > 1) {
+
+        } else {
+          return "";
+        }
+      default:
+        throw new CronapiException("Invalid filter expression type " + expressionType);
+    }
+  }
+
+  private static String bindParameters(String query, Map<String, String> values) {
+    final String SERVICE_ROOT_URI = "https://localhost/";
+    String[] querySlices = query.split("\\?", 2);
+    if (querySlices.length == 2) {
+      JsonParser jsonParser = new JsonParser();
+      JsonObject queryJson = (JsonObject) jsonParser.parse(querySlices[1]);
+      JsonObject expressionJson = queryJson.getAsJsonObject("expression");
+      String filter = toFilter(expressionJson, values);
+      URIBuilder uriBuilder = ODataClient.newInstance().uriBuilder(SERVICE_ROOT_URI);
+      uriBuilder.appendEntitySetSegment(querySlices[0]);
+      uriBuilder.filter(filter);
+      return uriBuilder.build().toString().replaceFirst(SERVICE_ROOT_URI, "");
+    }
+
+    return query;
+  }
+
+  public static void main(String[] args) throws Exception {
+    String query = "User?{\"params\":[],\"expression\":{\"type\":\"AND\",\"args\":[{\"type\":\"=\",\"left\":\"userName\",\"right\":\":userName\",\"args\":[]}]}}";
+    Map<String, String> values = new HashMap<>();
+    values.put("userName", "admin");
+    System.out.println(bindParameters(query, values));
+  }
 
   /**
    * TODO adicionar mais um parametro: params, para passar para o datasource do report,
    * de acordo com o StimulsoftHelper
    */
-	void exportStimulsoftReportToPdfFile(String reportName, File file) {
-	  try {
-      InputStream inputStream = this.getInputStream(reportName);
-
-      StiReport stiReport = StiSerializeManager.deserializeReport(inputStream);
-      stiReport.getReferencedAssemblies().clear();
-      stiReport.setScript(null);
-      stiReport.Render();
-
-      StiExportFormat exportFormat = StiExportFormat.Pdf;
-      StiExportService exportService = exportFormat.getExportService();
-
-      if (file.createNewFile()) {
-        log.info("Output report file created.");
+  void exportStimulsoftReportToPdfFile(String reportName, File file, Map<String, String> parameters) {
+    StiReport stiReport = null;
+    try {
+      try (InputStream inputStream = this.getInputStream(reportName)) {
+        stiReport = StiSerializeManager.deserializeReport(inputStream);
       }
 
-      exportService.export(stiReport, new FileOutputStream(file), exportFormat.getDefaultExportSettings());
+      stiReport.getDataSources().forEach(stiDataSource -> {
+        if (stiDataSource instanceof StiODataSource) {
+          StiODataSource stiODataSource = (StiODataSource) stiDataSource;
+          String query = bindParameters(stiODataSource.getQuery(), parameters);
+          stiODataSource.setQuery(query);
+        }
+      });
+
+      stiReport.Render();
+
+      try (OutputStream outputStream = new FileOutputStream(file)) {
+        StiPdfExportSettings pdfExportSettings = new StiPdfExportSettings();
+        pdfExportSettings.setPdfACompliance(true);
+        pdfExportSettings.setEmbeddedFonts(true);
+        pdfExportSettings.setStandardPdfFonts(true);
+        pdfExportSettings.setCompressed(true);
+        StiExportManager.exportPdf(stiReport, pdfExportSettings, outputStream);
+      }
+
     } catch (IOException | SAXException | StiDeserializationException | StiException e) {
       log.error("Problems exporting stimulsoft report to pdf file.");
       throw new RuntimeException(e);
-	  }
+    } finally {
+      if (stiReport != null) {
+        stiReport.dispose();
+      }
+    }
   }
 
   private ReportExport getReportExport(ReportFront reportFront) {
@@ -259,40 +372,40 @@ public class ReportService {
   }
 
   private EntityManager getEntityManager(String persistenceUnit) {
-		HashMap<String, Object> properties = new HashMap<>();
-		properties.put(PersistenceUnitProperties.JTA_DATASOURCE, persistenceUnit);
-		EntityManagerFactory managerFactory = Persistence.createEntityManagerFactory(persistenceUnit, properties);
-		return managerFactory.createEntityManager();
-	}
+    HashMap<String, Object> properties = new HashMap<>();
+    properties.put(PersistenceUnitProperties.JTA_DATASOURCE, persistenceUnit);
+    EntityManagerFactory managerFactory = Persistence.createEntityManagerFactory(persistenceUnit, properties);
+    return managerFactory.createEntityManager();
+  }
 
-	private Connection getConnection(String datasource) {
-		if (datasource != null && !datasource.isEmpty() && !"null".equals(datasource)) {
-			javax.naming.Context context = null;
-			DataSource dataSource = null;
-			try {
-				context = (javax.naming.Context) new InitialContext().lookup("java:/comp/env");
-				dataSource = (DataSource) context.lookup(datasource);
-			} catch (NamingException e) {
-				try {
-					if (context != null) {
+  private Connection getConnection(String datasource) {
+    if (datasource != null && !datasource.isEmpty() && !"null".equals(datasource)) {
+      javax.naming.Context context = null;
+      DataSource dataSource = null;
+      try {
+        context = (javax.naming.Context) new InitialContext().lookup("java:/comp/env");
+        dataSource = (DataSource) context.lookup(datasource);
+      } catch (NamingException e) {
+        try {
+          if (context != null) {
             dataSource = (DataSource) context.lookup(datasource.toLowerCase());
           }
-				} catch (NamingException e1) {
-					throw new RuntimeException(
-							new Exception("Connection context not found.\nError: " + e.getMessage()));
-				}
-			}
-			try {
-				if (dataSource != null) {
+        } catch (NamingException e1) {
+          throw new RuntimeException(
+              new Exception("Connection context not found.\nError: " + e.getMessage()));
+        }
+      }
+      try {
+        if (dataSource != null) {
           return dataSource.getConnection();
         }
-			} catch (SQLException e) {
-				throw new RuntimeException(
-						new Exception("Trouble getting a connection from the context.\nError: " + e.getMessage()));
-			}
-		}
-		return null;
-	}
+      } catch (SQLException e) {
+        throw new RuntimeException(
+            new Exception("Trouble getting a connection from the context.\nError: " + e.getMessage()));
+      }
+    }
+    return null;
+  }
 
   private InputStream getInputStream(String reportName) {
     InputStream inputStream = loader.getResourceAsStream(reportName);

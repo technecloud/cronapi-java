@@ -24,6 +24,10 @@ public class StiODataSource extends StiDataTableSource {
     return this.getSqlCommand();
   }
 
+  public void setQuery(String sqlCommand) {
+    this.sqlCommand = sqlCommand;
+  }
+
   @Override
   public Class<? extends StiDatabase> getDatabaseClass() {
     return StiODataDatabase.class;
