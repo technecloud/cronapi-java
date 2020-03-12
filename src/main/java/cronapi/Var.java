@@ -17,18 +17,23 @@ import cronapi.i18n.Messages;
 import cronapi.json.JsonArrayWrapper;
 import cronapi.json.Operations;
 import cronapi.serialization.CronappModule;
+import cronapi.util.GsonUTCDateAdapter;
 import cronapi.util.StorageService;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.cxf.staxutils.StaxUtils;
 import org.apache.olingo.odata2.core.ep.producer.OlingoJsonSerializer;
 import org.apache.olingo.odata2.jpa.processor.core.access.data.VirtualClassInterface;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.output.XMLOutputter;
 
+import javax.persistence.Entity;
+import javax.persistence.Id;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
@@ -38,17 +43,20 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Path;
+import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.regex.Pattern;
 
 @JsonAdapter(VarSerializer.class)
+@XmlJavaTypeAdapter(VarAdapter.class)
 public class Var implements Comparable<Var>, JsonSerializable, OlingoJsonSerializer,
     VirtualClassInterface {
 
   static {
     System.setProperty("https.protocols", "TLSv1.2,TLSv1.1,TLSv1,TLSv1");
+    System.setProperty(StaxUtils.ALLOW_INSECURE_PARSER, "1");
   }
 
   @Override
@@ -369,6 +377,8 @@ public class Var implements Comparable<Var>, JsonSerializable, OlingoJsonSeriali
       return getObjectAsBoolean();
     } else if (type == JsonElement.class) {
       return getObjectAsJson();
+    } else if (type == Timestamp.class) {
+      return new Timestamp(getObjectAsDateTime().getTimeInMillis());
     } else if (type == Date.class) {
       return getObjectAsDateTime().getTime();
     } else if (type == Calendar.class) {
@@ -548,6 +558,27 @@ public class Var implements Comparable<Var>, JsonSerializable, OlingoJsonSeriali
             return new Gson().fromJson(_object.toString(), JsonElement.class);
           } else if (_object instanceof InputStream) {
             return new Gson().fromJson(getObjectAsString(), JsonElement.class);
+          } else if (_object.getClass().getAnnotation(Entity.class) != null) {
+            GsonBuilder builder = new GsonBuilder().addSerializationExclusionStrategy(new ExclusionStrategy() {
+              @Override
+              public boolean shouldSkipField(FieldAttributes fieldAttributes) {
+                if (fieldAttributes.getDeclaringClass() == _object.getClass() || fieldAttributes.getAnnotation(Id.class) != null) {
+                  return false;
+                }
+                return true;
+              }
+
+              @Override
+              public boolean shouldSkipClass(Class<?> aClass) {
+                return false;
+              }
+            });
+
+            builder.registerTypeAdapter(Date.class, new GsonUTCDateAdapter());
+
+            Gson gson = builder.create();
+
+            return  gson.toJsonTree(_object);
           } else {
             ObjectMapper mapper = new ObjectMapper();
             SimpleFilterProvider filters = new SimpleFilterProvider();

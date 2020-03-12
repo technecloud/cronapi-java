@@ -259,7 +259,7 @@ public class QueryManager {
           customValues.put("entityName", Var.valueOf(entityName));
           customValues.put("eventName", Var.valueOf(eventName));
 
-          params[i] = parseExpressionValue(param.get("value"), customValues);
+          params[i] = parseExpressionValue(ds, param.get("value"), customValues);
 
         }
 
@@ -269,6 +269,35 @@ public class QueryManager {
       }
     } catch (Exception e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  public static void executeEvent(JsonObject query, String eventName, Map<String, Var> customValues) {
+    JsonObject events = query.getAsJsonObject("events");
+    if (!isNull(events)) {
+      if (!isNull(events.get(eventName))) {
+        JsonObject event = events.getAsJsonObject(eventName);
+        Var name = Var
+            .valueOf(event.get("blocklyClass").getAsString() + ":" + event.get("blocklyMethod")
+                .getAsString());
+
+        Var params[] = new Var[0];
+        if (event.get("blocklyParams") != null) {
+          JsonArray bloclyParams = event.get("blocklyParams").getAsJsonArray();
+          params = new Var[bloclyParams.size()];
+          for (int i = 0; i < bloclyParams.size(); i++) {
+            JsonObject param = bloclyParams.get(i).getAsJsonObject();
+            customValues.put("eventName", Var.valueOf(eventName));
+            params[i] = parseExpressionValue(null, param.get("value"), customValues);
+          }
+        }
+
+        try {
+          Operations.callBlockly(name, params);
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
     }
   }
 
@@ -352,7 +381,7 @@ public class QueryManager {
             return Var.VAR_NULL;
           }
 
-          return parseExpressionValue(((JsonObject) prv).get("fieldValue"), customValues);
+          return parseExpressionValue(null, ((JsonObject) prv).get("fieldValue"), customValues);
         }
       }
     }
@@ -857,7 +886,7 @@ public class QueryManager {
     return result;
   }
 
-  public static Var parseExpressionValue(JsonElement element, Map<String, Var> customValues) {
+  public static Var parseExpressionValue(Object ds, JsonElement element, Map<String, Var> customValues) {
     Var value = Var.VAR_NULL;
     if (!isNull(element)) {
       if (element.isJsonPrimitive()) {
@@ -867,6 +896,10 @@ public class QueryManager {
           value = Var.valueOf(element.getAsJsonPrimitive().getAsNumber());
         } else {
           if (!element.getAsJsonPrimitive().getAsString().isEmpty()) {
+            if (customValues != null && ds != null && element.getAsJsonPrimitive().getAsString().startsWith("data.")) {
+              String key = element.getAsJsonPrimitive().getAsString().substring(5);
+              return Var.valueOf(ds).getField(key);
+            }
             if (customValues != null && customValues.containsKey(element.getAsJsonPrimitive().getAsString())) {
               value = customValues.get(element.getAsJsonPrimitive().getAsString());
             } else {
@@ -903,7 +936,7 @@ public class QueryManager {
   }
 
   public static Var parseExpressionValue(JsonElement element) {
-    return parseExpressionValue(element, null);
+    return parseExpressionValue(null, element, null);
   }
 
   public static void addCalcFields(JsonObject query, DataSource ds) {

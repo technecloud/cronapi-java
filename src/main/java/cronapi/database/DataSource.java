@@ -24,8 +24,10 @@ import org.eclipse.persistence.internal.jpa.EJBQueryImpl;
 import org.eclipse.persistence.internal.jpa.EntityManagerImpl;
 import org.eclipse.persistence.internal.jpa.jpql.HermesParser;
 import org.eclipse.persistence.internal.jpa.metamodel.EntityTypeImpl;
+import org.eclipse.persistence.internal.queries.ReportItem;
 import org.eclipse.persistence.internal.sessions.AbstractSession;
 import org.eclipse.persistence.queries.DatabaseQuery;
+import org.eclipse.persistence.queries.ReportQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -77,6 +79,7 @@ public class DataSource implements JsonSerializable {
   private boolean useOdataRequest = false;
   private boolean isEor = false;
   private boolean useOffset = false;
+  private DatabaseQuery queryParsed;
 
   /**
    * Init a datasource with a page size equals 100
@@ -114,7 +117,7 @@ public class DataSource implements JsonSerializable {
     this.entity = entity;
     this.simpleEntity = entity.substring(entity.lastIndexOf(".") + 1);
     this.pageSize = pageSize;
-    this.pageRequest = new PageRequest(0, pageSize);
+    this.pageRequest = PageRequest.of(0, pageSize);
 
     // initialize dependencies and necessaries objects
     this.instantiateRepository();
@@ -327,9 +330,9 @@ public class DataSource implements JsonSerializable {
       if ((this.pageRequest != null) && (!isCount)) {
         if (info != null && info.first != null) {
           query.setFirstResult(info.first);
-        }else if(this.useOffset) {
+        } else if (this.useOffset) {
           query.setFirstResult(this.pageRequest.getPageNumber());
-        }else{
+        } else {
           query.setFirstResult(this.pageRequest.getPageNumber() * this.pageRequest.getPageSize());
         }
         if (info != null && info.max != null) {
@@ -365,6 +368,8 @@ public class DataSource implements JsonSerializable {
             total = (Long) countResult[0];
           }
         }
+
+        this.queryParsed = queryParsed;
       }
 
       this.page = new PageImpl(resultsInPage, this.pageRequest, total);
@@ -556,6 +561,23 @@ public class DataSource implements JsonSerializable {
     }
   }
 
+  public Object saveAfterCommit(AbstractSession session) {
+    try {
+      Object toSave;
+
+      if (this.insertedElement != null) {
+        toSave = this.insertedElement;
+        session.insertObject(toSave);
+      } else
+        toSave = this.getObject();
+
+      return toSave;
+
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public void delete(Var[] primaryKeys) {
     insert();
     int i = 0;
@@ -618,7 +640,6 @@ public class DataSource implements JsonSerializable {
   }
 
 
-
   /**
    * Update fields from object in the current index
    *
@@ -633,7 +654,7 @@ public class DataSource implements JsonSerializable {
   }
 
   public void filterByPk(Var[] params) {
-    filter(null, new PageRequest(1, 1), params);
+    filter(null, PageRequest.of(1, 1), params);
   }
 
   public void filter(Var data, Var[] extraParams) {
@@ -644,7 +665,7 @@ public class DataSource implements JsonSerializable {
     int i = 0;
     String jpql = " select e FROM " + entity.substring(entity.lastIndexOf(".") + 1) + " e WHERE ";
     Vector<Var> params = new Vector<>();
-    for (Object obj : getAjustedAttributes(type)) {
+    for (Object obj : JPAUtil.getAjustedAttributes(type)) {
       SingularAttribute field = (SingularAttribute) obj;
       if (field.isId()) {
         if (i > 0) {
@@ -764,7 +785,7 @@ public class DataSource implements JsonSerializable {
       this.current++;
     }
     else {
-      this.pageRequest = new PageRequest(this.page.getNumber() + 1, pageSize);
+      this.pageRequest = PageRequest.of(this.page.getNumber() + 1, pageSize);
       this.fetch();
       if (this.page.getNumberOfElements() > 0) {
         this.current = 0;
@@ -851,7 +872,7 @@ public class DataSource implements JsonSerializable {
    */
   public void setPageSize(int pageSize) {
     this.pageSize = pageSize;
-    this.pageRequest = new PageRequest(0, pageSize);
+    this.pageRequest = PageRequest.of(0, pageSize);
     this.current = -1;
   }
 
@@ -864,7 +885,7 @@ public class DataSource implements JsonSerializable {
   public void filter(String filter, Var... params) {
     this.filter = filter;
     this.params = params;
-    this.pageRequest = new PageRequest(0, pageSize);
+    this.pageRequest = PageRequest.of(0, pageSize);
     this.current = -1;
     this.fetch();
   }
@@ -881,7 +902,7 @@ public class DataSource implements JsonSerializable {
 
         int i = 0;
         String jpql = "Select e from " + simpleEntity + " e where (";
-        for (Object obj : getAjustedAttributes(type)) {
+        for (Object obj : JPAUtil.getAjustedAttributes(type)) {
           SingularAttribute field = (SingularAttribute) obj;
           if (field.isId()) {
             if (i > 0) {
@@ -907,7 +928,7 @@ public class DataSource implements JsonSerializable {
         EntityType type = em.getMetamodel().entity(domainClass);
         int i = 0;
         String filterForId = " (";
-        for (Object obj : getAjustedAttributes(type)) {
+        for (Object obj : JPAUtil.getAjustedAttributes(type)) {
           SingularAttribute field = (SingularAttribute) obj;
           if (field.isId()) {
             if (i > 0) {
@@ -954,25 +975,8 @@ public class DataSource implements JsonSerializable {
     SingularAttribute field;
   }
 
-  private Set getAjustedAttributes(EntityType type) {
-    Set<SingularAttribute> attributes = type.getAttributes();
-    Set<SingularAttribute> attrs = new LinkedHashSet<SingularAttribute>();
-
-    for (int i = 0; i < type.getJavaType().getDeclaredFields().length; i++) {
-      for (SingularAttribute attr : attributes) {
-        if (attr.getName().equalsIgnoreCase(type.getJavaType().getDeclaredFields()[i].getName())) {
-          attrs.add(attr);
-          break;
-        }
-      }
-      ;
-    }
-
-    return attrs;
-  }
-
   private void addKeys(EntityManager em, EntityType type, String parent, List<TypeKey> keys) {
-    for (Object obj : getAjustedAttributes(type)) {
+    for (Object obj : JPAUtil.getAjustedAttributes(type)) {
       SingularAttribute field = (SingularAttribute) obj;
       if (field.isId()) {
         if (field.getType().getPersistenceType() == Type.PersistenceType.BASIC) {
@@ -1071,7 +1075,7 @@ public class DataSource implements JsonSerializable {
     try {
       startMultitenant(em);
 
-      filter(null, new PageRequest(0, 100), primaryKeys);
+      filter(null, PageRequest.of(0, 100), primaryKeys);
       Object insertion = null;
       if (relationMetadata.getAssossiationName() != null) {
         insertion = this.newInstance(relationMetadata.getAssossiationName());
@@ -1155,7 +1159,7 @@ public class DataSource implements JsonSerializable {
 
     int i = 0;
     String jpql = "Select e" + selectAttr + " from " + name + " e where ";
-    for (Object obj : getAjustedAttributes(type)) {
+    for (Object obj : JPAUtil.getAjustedAttributes(type)) {
       SingularAttribute field = (SingularAttribute) obj;
       if (field.isId()) {
         if (i > 0) {
@@ -1174,7 +1178,7 @@ public class DataSource implements JsonSerializable {
    * Clean Datasource and to free up allocated memory
    */
   public void clear() {
-    this.pageRequest = new PageRequest(0, 100);
+    this.pageRequest = PageRequest.of(0, 100);
     this.current = -1;
     this.page = null;
   }
@@ -1309,7 +1313,30 @@ public class DataSource implements JsonSerializable {
 
   @Override
   public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-    gen.writeObject(this.page.getContent());
+    if (queryParsed instanceof ReportQuery) {
+      gen.writeStartArray();
+      for (Object row : this.page.getContent()) {
+        if (row.getClass().isArray()) {
+          Object[] array = (Object[]) row;
+          gen.writeStartObject();
+          int i = 0;
+          for (ReportItem item : ((ReportQuery) queryParsed).getItems()) {
+            String name = item.getName();
+
+            if (name == null || name.isEmpty()) {
+              name = "expression";
+            }
+            gen.writeFieldName(name);
+            gen.writeObject(array[i]);
+            i++;
+          }
+          gen.writeEndObject();
+        }
+      }
+      gen.writeEndArray();
+    } else {
+      gen.writeObject(this.page.getContent());
+    }
   }
 
   @Override
@@ -1400,7 +1427,7 @@ public class DataSource implements JsonSerializable {
 
     LinkedList result = new LinkedList<>();
 
-    for (Object obj : getAjustedAttributes(type)) {
+    for (Object obj : JPAUtil.getAjustedAttributes(type)) {
       SingularAttribute field = (SingularAttribute) obj;
       if (field.isId()) {
         result.add(getObject(field.getName()));
@@ -1418,7 +1445,7 @@ public class DataSource implements JsonSerializable {
     EntityManager em = getEntityManager(domainClass);
     EntityType type = em.getMetamodel().entity(domainClass);
 
-    for (Object obj : getAjustedAttributes(type)) {
+    for (Object obj : JPAUtil.getAjustedAttributes(type)) {
       SingularAttribute field = (SingularAttribute) obj;
       if (field.isId()) {
         return Var.valueOf(getObject(field.getName()));
@@ -1439,7 +1466,7 @@ public class DataSource implements JsonSerializable {
     }
 
     int i = 0;
-    for (Object obj : getAjustedAttributes(type)) {
+    for (Object obj : JPAUtil.getAjustedAttributes(type)) {
       SingularAttribute field = (SingularAttribute) obj;
       if (field.isId()) {
         Utils.updateField(instanceDomain, field.getName(), ids[i].getObject(field.getType().getJavaType()));
@@ -1488,6 +1515,6 @@ public class DataSource implements JsonSerializable {
   }
 
   public void setUseOffset(boolean useOffset) {
-        this.useOffset = useOffset;
+    this.useOffset = useOffset;
   }
 }

@@ -33,13 +33,31 @@ public class RestClient {
   private HttpServletRequest request;
   private HttpSession session;
   private User user;
+  private String host;
+  private String userAgent;
   private JsonObject query = null;
   private boolean filteredEnabled = false;
   private Locale locale;
   private Integer utcOffset;
   private Map<String, String> parameters;
+  private Map<String, String> headers;
+  private Object entity;
+  private List<Object> keys;
 
   private static List<GrantedAuthority> DEFAULT_AUTHORITIES;
+
+  private static final String[] IP_HEADER_CANDIDATES = {
+      "X-Forwarded-For",
+      "Proxy-Client-IP",
+      "WL-Proxy-Client-IP",
+      "HTTP_X_FORWARDED_FOR",
+      "HTTP_X_FORWARDED",
+      "HTTP_X_CLUSTER_CLIENT_IP",
+      "HTTP_CLIENT_IP",
+      "HTTP_FORWARDED_FOR",
+      "HTTP_FORWARDED",
+      "HTTP_VIA",
+      "REMOTE_ADDR" };
 
   static {
     DEFAULT_AUTHORITIES = new ArrayList<>();
@@ -196,6 +214,14 @@ public class RestClient {
     parameters.put(key, value);
   }
 
+  public void setHeader(String key, String value) {
+    if (headers == null) {
+      headers = new LinkedHashMap<>();
+    }
+
+    headers.put(key, value);
+  }
+
   public void setParameters(String parametersStr) {
     if (parameters == null) {
       parameters = new LinkedHashMap<>();
@@ -216,6 +242,13 @@ public class RestClient {
       return parameters.get(key);
     }
     return getRequest().getParameter(key);
+  }
+
+  public String getHeader(String key) {
+    if (headers != null) {
+      return headers.get(key);
+    }
+    return getRequest().getHeader(key);
   }
 
   public boolean hasParameter(String key) {
@@ -258,6 +291,22 @@ public class RestClient {
 
   public void setQuery(JsonObject query) {
     this.query = query;
+  }
+
+  public Object getEntity() {
+    return entity;
+  }
+
+  public void setEntity(Object entity) {
+    this.entity = entity;
+  }
+
+  public List<Object> getKeys() {
+    return keys;
+  }
+
+  public void setKeys(List<Object> keys) {
+    this.keys = keys;
   }
 
   public User getUser() {
@@ -353,5 +402,33 @@ public class RestClient {
 
   public boolean isDefined() {
     return getRequest() != null;
+  }
+
+  public String getHost() {
+    if (host != null) return host;
+    else {
+      if (getRequest() != null) return getClientIpAddress(getRequest());
+    }
+
+    return null;
+  }
+
+  public String getAgent() {
+    if (userAgent != null) return userAgent;
+    else {
+      if (getRequest() != null) return getRequest().getHeader("User-Agent");
+    }
+
+    return null;
+  }
+
+  public static String getClientIpAddress(HttpServletRequest request) {
+    for (String header : IP_HEADER_CANDIDATES) {
+      String ip = request.getHeader(header);
+      if (ip != null && ip.length() != 0 && !"unknown".equalsIgnoreCase(ip)) {
+        return ip;
+      }
+    }
+    return request.getRemoteAddr();
   }
 }

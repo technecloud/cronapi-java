@@ -1,8 +1,11 @@
 package cronapi.odata.server;
 
-import com.google.gson.JsonObject;
+import com.google.gson.*;
 import cronapi.*;
 import cronapi.database.DataSource;
+import cronapi.database.DatabaseQueryManager;
+import cronapi.database.HistoryListener;
+import cronapi.i18n.Messages;
 import cronapi.util.ReflectionUtils;
 import org.apache.olingo.odata2.api.ClientCallback;
 import org.apache.olingo.odata2.api.edm.EdmEntitySet;
@@ -11,6 +14,7 @@ import org.apache.olingo.odata2.api.edm.EdmProperty;
 import org.apache.olingo.odata2.api.uri.UriInfo;
 import org.apache.olingo.odata2.api.uri.expression.*;
 import org.apache.olingo.odata2.api.uri.info.*;
+import org.apache.olingo.odata2.core.edm.provider.EdmEntityTypeImplProv;
 import org.apache.olingo.odata2.core.edm.provider.EdmSimplePropertyImplProv;
 import org.apache.olingo.odata2.core.uri.UriInfoImpl;
 import org.apache.olingo.odata2.jpa.processor.api.ODataJPAQueryExtensionEntityListener;
@@ -25,8 +29,11 @@ import org.eclipse.persistence.internal.jpa.jpql.HermesParser;
 import org.eclipse.persistence.internal.sessions.AbstractSession;
 import org.eclipse.persistence.jpa.jpql.parser.*;
 import org.eclipse.persistence.queries.DatabaseQuery;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
+import javax.persistence.Id;
 import javax.persistence.Query;
 import javax.persistence.TemporalType;
 import java.lang.reflect.Field;
@@ -35,7 +42,7 @@ import java.sql.Timestamp;
 import java.util.*;
 
 public class QueryExtensionEntityListener extends ODataJPAQueryExtensionEntityListener {
-
+  private static final Logger log = LoggerFactory.getLogger(QueryExtensionEntityListener.class);
   private BlocklyQuery GETBlocklyQuery;
   private String GETFunctionName;
 
@@ -132,6 +139,10 @@ public class QueryExtensionEntityListener extends ODataJPAQueryExtensionEntityLi
             jpqlStatement = RestClient.getRestClient().getParameter("jpql");
           } else {
             jpqlStatement = QueryManager.getJPQL(customQuery, false);
+          }
+
+          if (((EdmEntityTypeImplProv) entityType).getEntityType().getJpql() != null) {
+            jpqlStatement = ((EdmEntityTypeImplProv) entityType).getEntityType().getJpql();
           }
 
           JPQLExpression jpqlExpression = new JPQLExpression(
@@ -271,7 +282,7 @@ public class QueryExtensionEntityListener extends ODataJPAQueryExtensionEntityLi
           String function = customQuery.getAsJsonObject("blockly").get("blocklyClass").getAsString() + ":" + customQuery.getAsJsonObject("blockly").get("blocklyMethod").getAsString();
 
           query = new BlocklyQuery(customQuery, restMethod, type, jpqlStatement, (uriInfo.getFilter() != null ? uriInfo.getFilter().getExpressionString() : ""), uriInfo.getTargetEntitySet().getName());
-          ((BlocklyQuery)query).setUriInfo(uriInfo);
+          ((BlocklyQuery) query).setUriInfo(uriInfo);
 
           if (uriInfo.isCount() && GETFunctionName != null && GETBlocklyQuery != null && GETFunctionName.equalsIgnoreCase(function)) {
             if (GETBlocklyQuery.getLastResult() != null && GETBlocklyQuery.getLastResult().getObject() instanceof DataSource) {
@@ -372,6 +383,9 @@ public class QueryExtensionEntityListener extends ODataJPAQueryExtensionEntityLi
       }
 
     } catch (Exception e) {
+      if (e.getMessage().contains("The state field path")) {
+        throw ErrorResponse.createException(new RuntimeException(Messages.getString("fieldpath")), RestClient.getRestClient().getMethod());
+      }
       throw ErrorResponse.createException(e, RestClient.getRestClient().getMethod());
     }
 
@@ -616,8 +630,58 @@ public class QueryExtensionEntityListener extends ODataJPAQueryExtensionEntityLi
     return callbacks;
   }
 
+  private void beforeAnyOperation(String type, Object object) {
+    try {
+      DatabaseQueryManager logManager = HistoryListener.getAuditLogManager();
+
+      if (logManager != null) {
+
+        GsonBuilder builder = new GsonBuilder().addSerializationExclusionStrategy(new ExclusionStrategy() {
+          @Override
+          public boolean shouldSkipField(FieldAttributes fieldAttributes) {
+            if (fieldAttributes.getDeclaringClass() == object.getClass() || fieldAttributes.getAnnotation(Id.class) != null) {
+              return false;
+            }
+            return true;
+          }
+
+          @Override
+          public boolean shouldSkipClass(Class<?> aClass) {
+            return false;
+          }
+        });
+
+        builder.registerTypeAdapter(Date.class, HistoryListener.UTC_DATE_ADAPTER);
+
+        Gson gson = builder.create();
+
+        JsonElement objectJson = gson.toJsonTree(object);
+
+        Var auditLog = new Var(new LinkedHashMap<>());
+
+        auditLog.set("type", object.getClass().getName());
+        auditLog.set("command", type);
+        auditLog.set("category", "DataSource");
+        auditLog.set("date", new Date());
+        auditLog.set("objectData", objectJson.toString());
+        if (RestClient.getRestClient() != null) {
+          auditLog.set("user", RestClient.getRestClient().getUser() != null ? RestClient.getRestClient().getUser().getUsername() : null);
+          auditLog.set("host", RestClient.getRestClient().getHost());
+          auditLog.set("agent", RestClient.getRestClient().getAgent());
+        }
+        auditLog.set("server", HistoryListener.CURRENT_IP);
+        auditLog.set("application", AppConfig.guid());
+
+        logManager.insert(auditLog);
+
+      }
+    } catch (Exception e) {
+      log.error(e.getMessage(), e);
+    }
+  }
+
   @Override
-  public Object execEvent(final UriInfo infoView, final EdmEntityType entityType, String type, Object data) throws ODataJPARuntimeException {
+  public Object execEvent(final UriInfo infoView, final EdmEntityType entityType, String type, Object data) {
     if (infoView != null) {
       try {
         JsonObject query = null;
@@ -632,6 +696,14 @@ public class QueryExtensionEntityListener extends ODataJPAQueryExtensionEntityLi
         }
 
         if (query != null) {
+
+          if (type.startsWith("before")) {
+            if (!QueryManager.isNull(query.get("audit")) && query.get("audit").getAsJsonPrimitive().getAsBoolean()) {
+              beforeAnyOperation(type.replace("before", "").toUpperCase(), data);
+            }
+            RestClient.getRestClient().setEntity(data);
+          }
+
           List<Object> keys = new LinkedList<>();
           try {
             for (String key : entityType.getKeyPropertyNames()) {
@@ -640,6 +712,7 @@ public class QueryExtensionEntityListener extends ODataJPAQueryExtensionEntityLi
           } catch (Exception e) {
             e.printStackTrace();
           }
+          RestClient.getRestClient().setKeys(keys);
           Var result = QueryManager.executeEvent(query, data, type, keys, entityType.getName());
           if (result != null) {
             return result.getObject();

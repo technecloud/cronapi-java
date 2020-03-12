@@ -1,25 +1,14 @@
 package cronapi.util;
 
-import java.io.*;
-import java.lang.annotation.Annotation;
-import java.lang.management.ManagementFactory;
-import java.lang.reflect.Method;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.UUID;
-import java.util.concurrent.*;
-import java.util.logging.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import cronapi.*;
+import cronapi.CronapiMetaData.CategoryType;
+import cronapi.CronapiMetaData.ObjectType;
+import cronapi.clazz.CronapiClassLoader;
+import cronapi.database.DatabaseQueryManager;
+import cronapi.database.HistoryListener;
+import cronapi.i18n.Messages;
+import cronapi.rest.DownloadREST;
+import cronapi.rest.security.BlocklySecurity;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
@@ -31,17 +20,26 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.eclipse.rap.json.JsonArray;
 import org.eclipse.rap.json.JsonObject;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import cronapi.CronapiMetaData.CategoryType;
-import cronapi.CronapiMetaData.ObjectType;
-import cronapi.clazz.CronapiClassLoader;
-import cronapi.i18n.Messages;
-import cronapi.rest.DownloadREST;
-import cronapi.rest.security.BlocklySecurity;
+import java.io.*;
+import java.lang.annotation.Annotation;
+import java.lang.management.ManagementFactory;
+import java.lang.reflect.Method;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @CronapiMetaData(category = CategoryType.UTIL, categoryTags = {"Util"})
 public class Operations {
@@ -242,7 +240,7 @@ public class Operations {
 
     try {
       if (IS_DEBUG) {
-        CronapiClassLoader loader = new CronapiClassLoader();
+        CronapiClassLoader loader = CronapiClassLoader.getInstance();
         clazz = loader.findClass(className);
       } else {
         clazz = Class.forName(className);
@@ -264,18 +262,32 @@ public class Operations {
 
       try {
         if (IS_DEBUG) {
-          CronapiClassLoader loader = new CronapiClassLoader();
+          CronapiClassLoader loader = CronapiClassLoader.getInstance();
           clazz = loader.findClass(className);
         } else {
           clazz = Class.forName(className);
         }
       } catch (Exception e2) {
-        throw new Exception(Messages.getString("blocklyNotFound"), e2);
+        try {
+          if (IS_DEBUG) {
+            CronapiClassLoader loader = CronapiClassLoader.getInstance();
+            clazz = loader.findClass("blockly." + className);
+          } else {
+            clazz = Class.forName("blockly." + className);
+          }
+        } catch (Exception e3) {
+          throw new Exception(Messages.getString("blocklyNotFound"), e);
+        }
       }
 
     }
 
+    boolean checkSOAP = false;
     if (checkSecurity) {
+      if (restMethod.equals("soap")) {
+        restMethod = "POST";
+        checkSOAP = true;
+      }
       BlocklySecurity.checkSecurity(clazz, restMethod);
     }
 
@@ -307,6 +319,8 @@ public class Operations {
     }
 
     boolean isBlockly = false;
+    boolean isSoap = false;
+    boolean audit = false;
     for (Annotation annotation : clazz.getAnnotations()) {
       if (annotation.annotationType().getName().equals("cronapi.CronapiMetaData")) {
         Method type = annotation.annotationType().getMethod("type");
@@ -317,12 +331,63 @@ public class Operations {
           }
         }
       }
+      if (annotation.annotationType().getName().equals("cronapi.rest.security.CronappAudit")) {
+        audit = true;
+      }
+
+      if (annotation.annotationType().getName().equals("javax.jws.WebService")) {
+        isSoap = true;
+      }
     }
     if (!isBlockly) {
       throw new Exception(Messages.getString("accessDenied"));
     }
+
+    if (checkSOAP && !isSoap) {
+      throw new Exception(Messages.getString("accessDenied"));
+    }
+
     Object o = methodToCall.invoke(clazz, callParams);
-    return Var.valueOf(o);
+    Var result = Var.valueOf(o);
+    if (audit) {
+      auditBlockly(clazz, methodToCall, result, callParams);
+    }
+
+    return result;
+  }
+
+  private static void auditBlockly(Class blockly, Method function, Var result, Var[] params) throws Exception {
+    DatabaseQueryManager logManager = HistoryListener.getAuditLogManager();
+
+    if (logManager != null) {
+
+      JsonObject json = new JsonObject();
+      JsonArray arrayParams = new JsonArray();
+      json.add("parameters", arrayParams);
+      for (Var p : params) {
+        arrayParams.add(p.getObjectAsString());
+      }
+      json.add("result", result.getObjectAsString());
+
+      Var auditLog = new Var(new LinkedHashMap<>());
+
+      auditLog.set("type", blockly.getName());
+      auditLog.set("command", function.getName());
+      auditLog.set("category", "Blockly");
+      auditLog.set("date", new Date());
+      auditLog.set("objectData", json.toString());
+      if (RestClient.getRestClient() != null) {
+        auditLog.set("user", RestClient.getRestClient().getUser() != null ? RestClient.getRestClient().getUser().getUsername() : null);
+        auditLog.set("host", RestClient.getRestClient().getHost());
+        auditLog.set("agent", RestClient.getRestClient().getAgent());
+      }
+      auditLog.set("server", HistoryListener.CURRENT_IP);
+      auditLog.set("affectedFields", null);
+      auditLog.set("application", AppConfig.guid());
+
+      logManager.insert(auditLog);
+
+    }
   }
 
   @CronapiMetaData(type = "function", name = "{{encryptPasswordName}}", nameTags = {
@@ -398,7 +463,7 @@ public class Operations {
   private static final Var getContentFromURL(Var method, Var contentType, Var address, Var params,
                                              Var cookieContainer, Var returnType, Var postData) throws Exception {
 
-    HttpClient httpClient = HttpClients.createDefault();
+    HttpClient httpClient = HttpClients.createSystem();
     final HttpRequestBase httpMethod;
 
     if (method.getObjectAsString().equalsIgnoreCase("POST")) {
@@ -853,6 +918,38 @@ public class Operations {
       log.log(level, message.getObjectAsString(), exception.getObjectAsString());
     } else {
       log.log(level, message.getObjectAsString());
+    }
+  }
+
+  @CronapiMetaData(type = "function", name = "{{audit}}", nameTags = {"audit", "auditar"}, description = "{{auditDescription}}")
+  public static void audit(
+      @ParamMetaData(type = ObjectType.STRING, description = "{{auditType}}", defaultValue = "General") Var type,
+      @ParamMetaData(type = ObjectType.STRING, description = "{{auditCommand}}") Var command,
+      @ParamMetaData(type = ObjectType.STRING, description = "{{auditCategory}}", defaultValue = "Trace") Var category,
+      @ParamMetaData(type = ObjectType.STRING, description = "{{auditData}}") Var data
+  ) throws Exception {
+    DatabaseQueryManager logManager = HistoryListener.getAuditLogManager();
+
+    if (logManager != null) {
+
+      Var auditLog = new Var(new LinkedHashMap<>());
+
+      auditLog.set("type", type.getObjectAsString());
+      auditLog.set("command", command.getObjectAsString());
+      auditLog.set("category", category.getObjectAsString());
+      auditLog.set("date", new Date());
+      auditLog.set("objectData", data.getObjectAsString());
+      if (RestClient.getRestClient() != null) {
+        auditLog.set("user", RestClient.getRestClient().getUser() != null ? RestClient.getRestClient().getUser().getUsername() : null);
+        auditLog.set("host", RestClient.getRestClient().getHost());
+        auditLog.set("agent", RestClient.getRestClient().getAgent());
+      }
+      auditLog.set("server", HistoryListener.CURRENT_IP);
+      auditLog.set("affectedFields", null);
+      auditLog.set("application", AppConfig.guid());
+
+      logManager.insert(auditLog);
+
     }
   }
 }

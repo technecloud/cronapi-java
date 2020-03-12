@@ -37,4 +37,14 @@ public class OperationsTest {
         Assert.assertEquals(Operations.replaceFirst(Var.valueOf("cronapp.net"), Var.valueOf("net"), Var.valueOf("io")).getObjectAsString(), "cronapp.io");
         Assert.assertEquals(Operations.replaceFirst(Var.valueOf("acb.net"), Var.valueOf("ac(.*)"), Var.valueOf("cronapp")).getObjectAsString(), "cronapp");
     }
+
+    @Test
+    public void normalize() {
+       Assert.assertEquals(Operations.normalize(Var.valueOf("árvíztűrő tükörfúrógép")), Var.valueOf("arvizturo tukorfurogep"));
+    }
+
+    @Test
+    public void startsWith() {
+        Assert.assertTrue(Operations.startsWith(Var.valueOf("cronapp"), Var.valueOf("cron")).getObjectAsBoolean());
+    }
 }
