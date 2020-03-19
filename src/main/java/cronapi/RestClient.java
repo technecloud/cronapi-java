@@ -241,6 +241,11 @@ public class RestClient {
     if (parameters != null) {
       return parameters.get(key);
     }
+    if (getBody()!= null && getBody().getFields() != null && getBody().getFields().get("params") != null) {
+      Object result = getBody().getFields().get("params").getObjectAsMap().get(key);
+      if (result != null)
+        return result.toString();
+    }
     return getRequest().getParameter(key);
   }
 
