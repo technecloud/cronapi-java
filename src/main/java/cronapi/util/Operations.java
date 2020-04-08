@@ -240,7 +240,7 @@ public class Operations {
 
     try {
       if (IS_DEBUG) {
-        CronapiClassLoader loader = new CronapiClassLoader();
+        CronapiClassLoader loader = CronapiClassLoader.getInstance();
         clazz = loader.findClass(className);
       } else {
         clazz = Class.forName(className);
@@ -262,7 +262,7 @@ public class Operations {
 
       try {
         if (IS_DEBUG) {
-          CronapiClassLoader loader = new CronapiClassLoader();
+          CronapiClassLoader loader = CronapiClassLoader.getInstance();
           clazz = loader.findClass(className);
         } else {
           clazz = Class.forName(className);
@@ -270,7 +270,7 @@ public class Operations {
       } catch (Exception e2) {
         try {
           if (IS_DEBUG) {
-            CronapiClassLoader loader = new CronapiClassLoader();
+            CronapiClassLoader loader = CronapiClassLoader.getInstance();
             clazz = loader.findClass("blockly." + className);
           } else {
             clazz = Class.forName("blockly." + className);
@@ -346,7 +346,11 @@ public class Operations {
     if (checkSOAP && !isSoap) {
       throw new Exception(Messages.getString("accessDenied"));
     }
-
+    for (int i = 0; i < callParams.length; i++) {
+      if (callParams[i] == null) {
+        callParams[i] = Var.VAR_NULL;
+      }
+    }
     Object o = methodToCall.invoke(clazz, callParams);
     Var result = Var.valueOf(o);
     if (audit) {
