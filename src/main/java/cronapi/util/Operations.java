@@ -321,6 +321,11 @@ public class Operations {
     if (!isBlockly) {
       throw new Exception(Messages.getString("accessDenied"));
     }
+    for (int i = 0; i < callParams.length; i++) {
+      if (callParams[i] == null) {
+        callParams[i] = Var.VAR_NULL;
+      }
+    }
     Object o = methodToCall.invoke(clazz, callParams);
     return Var.valueOf(o);
   }
