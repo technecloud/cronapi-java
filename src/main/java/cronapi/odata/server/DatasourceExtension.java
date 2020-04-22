@@ -333,6 +333,7 @@ public class DatasourceExtension implements JPAEdmExtension {
         }
       }
     }
+    //A
 
     if (best == null) {
       for (Property p : complexType.getProperties()) {
