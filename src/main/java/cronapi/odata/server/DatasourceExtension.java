@@ -359,9 +359,9 @@ public class DatasourceExtension implements JPAEdmExtension {
       EntityType complexType = findEntityType(edmSchema, mapping.getJPAType().getSimpleName());
       if (complexType != null) {
         SimpleProperty best = (SimpleProperty) findBestDisplayField(complexType);
-        if (best != null) {
+        if (best != null && p.getIndex() == 0) {
           SimpleProperty newProp = (SimpleProperty) CloneUtils.getClone(p);
-          newProp.setName(newProp.getName() + "_" + best.getName());
+          newProp.setName(p.getOriginalName() + "_" + best.getName());
           newProp.setType(best.getType());
           ((Facets) newProp.getFacets()).setNullable(true);
 
