@@ -54,7 +54,9 @@ import java.util.regex.Pattern;
 public class Var implements Comparable<Var>, JsonSerializable, OlingoJsonSerializer,
     VirtualClassInterface {
 
-  static {
+    public static final String EXP_NULL = "$null";
+
+    static {
     System.setProperty("https.protocols", "TLSv1.2,TLSv1.1,TLSv1,TLSv1");
     System.setProperty(StaxUtils.ALLOW_INSECURE_PARSER, "1");
   }
@@ -206,6 +208,10 @@ public class Var implements Comparable<Var>, JsonSerializable, OlingoJsonSeriali
     }
 
     if (val == null) {
+      return VAR_NULL;
+    }
+
+    if (val instanceof String && EXP_NULL.equals(val)) {
       return VAR_NULL;
     }
 
