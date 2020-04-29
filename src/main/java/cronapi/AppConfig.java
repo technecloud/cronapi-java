@@ -23,6 +23,8 @@ public class AppConfig {
     if (!isNull(config.get("odata"))) {
       JsonElement elem = config.get("odata").getAsJsonObject().get("expandCompositeKeys");
       ODataJPAConfig.EXPAND_COMPOSITE_KEYS =  !isNull(elem) ? elem.getAsBoolean() : false;
+      elem = config.get("odata").getAsJsonObject().get("addDisplayFields");
+      ODataJPAConfig.ADD_DISPLAY_FIELDS =  !isNull(elem) ? elem.getAsBoolean() : true;
     }
   }
 

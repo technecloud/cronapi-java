@@ -327,6 +327,9 @@ public class DatasourceExtension implements JPAEdmExtension {
   }
 
   private Property findBestDisplayField(EntityType complexType) {
+    if (!ODataJPAConfig.ADD_DISPLAY_FIELDS) {
+      return null;
+    }
     Class clazz = ((JPAEdmMappingImpl) complexType.getMapping()).getJPAType();
     Field[] fields = clazz.getDeclaredFields();
     for (Field field : fields) {
@@ -377,6 +380,9 @@ public class DatasourceExtension implements JPAEdmExtension {
   }
 
   private void addDisplayFields(Schema edmSchema, EntityType type) {
+    if (!ODataJPAConfig.ADD_DISPLAY_FIELDS) {
+      return;
+    }
     List<Property> properties = new LinkedList<>();
     properties.addAll(type.getProperties());
 
