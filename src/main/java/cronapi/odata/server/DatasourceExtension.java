@@ -92,6 +92,7 @@ public class DatasourceExtension implements JPAEdmExtension {
           this.jpqlEntity = type;
         }
       }
+      //A
 
       for (EntityContainer container : edmSchema.getEntityContainers()) {
         for (EntitySet entitySet : container.getEntitySets()) {
