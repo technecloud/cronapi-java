@@ -443,6 +443,7 @@ public class DatasourceExtension implements JPAEdmExtension {
             continue;
           }
           Property newProperty = CloneUtils.getClone(property);
+          properties.add(newProperty);
           newProperty.setName(newProperty.getName());
           newProperty.setMapping(CloneUtils.getClone(property.getMapping()));
           JPAEdmMappingImpl mapping = ((JPAEdmMappingImpl) newProperty.getMapping());
@@ -451,31 +452,39 @@ public class DatasourceExtension implements JPAEdmExtension {
           mapping.setInternalExpression(expression + "." + property.getMapping().getInternalName());
           mapping.setComplexIndex(complexIndex);
           newProperty.setForeignKey(true);
-          if (property.getComposite() != null) {
-            newProperty.setComposite(null);
-            for (Property c: property.getComposite()) {
-              Property newComposite = CloneUtils.getClone(c);
-              JPAEdmMappingImpl compositeMapping = ((JPAEdmMappingImpl) newComposite.getMapping());
-              newComposite.setName(mainAlias + "_" + c.getName());
-              compositeMapping.setInternalName(mainAlias + "." + compositeMapping.getInternalName());
-              compositeMapping.setInternalExpression(expression + "." + c.getMapping().getInternalName());
-              compositeMapping.setComplexIndex(complexIndex);
-              compositeMapping.setVirtualAccess(true);
-              newComposite.setForeignKey(true);
-              newProperty.addComposite(newComposite);
+          if (property.getOriginalType() != null) {
+            if (property.getComposite() != null) {
+              newProperty.setComposite(null);
+              for (Property c : property.getComposite()) {
+                Property newComposite = CloneUtils.getClone(c);
+                JPAEdmMappingImpl compositeMapping = ((JPAEdmMappingImpl) newComposite.getMapping());
+                newComposite.setName(mainAlias + "_" + c.getName());
+                compositeMapping.setInternalName(mainAlias + "." + compositeMapping.getInternalName());
+                compositeMapping.setInternalExpression(expression + "." + c.getMapping().getInternalName());
+                compositeMapping.setComplexIndex(complexIndex);
+                compositeMapping.setVirtualAccess(true);
+                newComposite.setForeignKey(true);
+                newProperty.addComposite(newComposite);
+              }
             }
 
             SimpleProperty best = (SimpleProperty) findBestDisplayField(findEntityType(edmSchema, newProperty.getOriginalType().getSimpleName()));
             if (best != null) {
-              addProperty(orgName, mainType, edmSchema,
-                  ((JPAEdmMappingImpl) best.getMapping()).getJPAType(),
-                  newProperty.getName()+ "_" + best.getName(),
-                  mapping.getInternalName() + "." + best.getName(), mapping.getInternalExpression() + "." + best.getName(), properties,
-                  propertyRefList, expression, complexIndex, mainAlias);
+              if (property.getComposite() != null) {
+                addProperty(orgName, mainType, edmSchema,
+                    ((JPAEdmMappingImpl) best.getMapping()).getJPAType(),
+                    newProperty.getName() + "_" + best.getName(),
+                    mapping.getInternalName() + "." + best.getName(), mapping.getInternalExpression() + "." + best.getName(), properties,
+                    propertyRefList, expression, complexIndex, mainAlias);
+              } else {
+                addProperty(orgName, mainType, edmSchema,
+                    ((JPAEdmMappingImpl) best.getMapping()).getJPAType(),
+                    newProperty.getName() + "_" + best.getName(),
+                    mapping.getInternalName().substring(0, mapping.getInternalName().lastIndexOf(".")) + "." + best.getName(), mapping.getInternalExpression().substring(0, mapping.getInternalName().lastIndexOf(".")) + "." + best.getName(), properties,
+                    propertyRefList, expression, complexIndex, mainAlias);
+              }
             }
           }
-
-          properties.add(newProperty);
         }
         return null;
       }
@@ -598,6 +607,7 @@ public class DatasourceExtension implements JPAEdmExtension {
       key.setKeys(propertyRefList);
 
       List<Property> properties = new ArrayList<>();
+      List<Property> keys = new LinkedList<>();
       boolean keysSet = false;
 
       JsonElement defaultValuesPropertiesElement = entity.get("defaultValuesProperties");
@@ -623,9 +633,8 @@ public class DatasourceExtension implements JPAEdmExtension {
           properties.add(property);
 
           if (entry.getValue().getAsJsonObject().get("key").getAsBoolean()) {
-            PropertyRef propertyRef = new PropertyRef();
-            propertyRef.setName(entry.getKey());
-            propertyRefList.add(propertyRef);
+            keys.add(property);
+            property.setOriginalId(true);
             keysSet = true;
           }
 
@@ -637,11 +646,28 @@ public class DatasourceExtension implements JPAEdmExtension {
         propertyRefList.clear();
         canEdit = false;
         for (Property item : properties) {
-          PropertyRef propertyRef = new PropertyRef();
-          propertyRef.setName(item.getName());
-          propertyRefList.add(propertyRef);
+          keys.add(item);
         }
       }
+
+      SimpleProperty objectKey = new SimpleProperty();
+      objectKey.setName(ODataJPAConfig.COMPOSITE_KEY_NAME);
+      objectKey.setType(EdmSimpleTypeKind.String);
+
+      JPAEdmMappingImpl keymapping = new JPAEdmMappingImpl();
+      keymapping.setInternalName(ODataJPAConfig.COMPOSITE_KEY_NAME);
+      keymapping.setJPAType(EdmString.class);
+      keymapping.setVirtualAccess(true);
+
+      objectKey.setMapping(keymapping);
+
+      objectKey.setComposite(keys);
+
+      PropertyRef propertyRef = new PropertyRef();
+      propertyRef.setName(ODataJPAConfig.COMPOSITE_KEY_NAME);
+      propertyRefList.add(propertyRef);
+
+      properties.add(objectKey);
 
       EntityType type = new EntityType();
 
