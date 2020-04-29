@@ -525,7 +525,7 @@ public class QueryManager {
     }
 
     if (!authorized) {
-      throw new RuntimeException(Messages.getString("notAllowed"));
+   //   throw new RuntimeException(Messages.getString("notAllowed"));
     }
   }
 
