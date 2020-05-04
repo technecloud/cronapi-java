@@ -6,7 +6,7 @@
   <groupId>io.cronapp</groupId>
   <artifactId>cronapi-java</artifactId>
   <packaging>jar</packaging>
-   <!--Force  Build-->
+   <!--Force Build-->
   <name>cronapi-java</name>
   <version>2.6.0-SNAPSHOT</version>
   <description>Public Java library for CronApp's users</description>
