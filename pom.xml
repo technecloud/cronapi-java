@@ -6,6 +6,12 @@
   <groupId>io.cronapp</groupId>
   <artifactId>cronapi-java</artifactId>
   <packaging>jar</packaging>
+
+  <parent>
+    <groupId>cronapp</groupId>
+    <artifactId>cronapp-platform</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
    <!--Force Build-->
   <name>cronapi-java</name>
   <version>2.6.0-SNAPSHOT</version>
