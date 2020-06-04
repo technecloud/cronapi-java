@@ -45,7 +45,7 @@ public final class S3Service implements CloudService {
   @Override
   public void upload() {
     if (files == null || files.isEmpty()) {
-      log.warn("File content not found to Dropbox upload");
+      log.warn("File content not found to upload");
       return;
     }
     files.forEach(fileObject -> {
