@@ -10,7 +10,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.net.URLConnection;
 import java.util.ArrayList;
-
+import cronapi.util.Operations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,13 +57,13 @@ public final class CloudManager {
 				field.setAccessible(true);
 				Object valueField = field.get(sourceObject);
 				Object value = null;
-				
+
 				String fileExtension = null;
 				if (valueField instanceof String && isBase64Encoded((String)valueField))
 				  value = java.util.Base64.getDecoder().decode(((String) valueField).getBytes("UTF-8"));
 				else if (valueField instanceof String && cronapi.util.StorageService.isTempFileJson(valueField.toString())) {
 				  StorageServiceFileObject fileObject = StorageService.getFileObjectFromTempDirectory(valueField.toString());
-				  value = fileObject.bytes; 
+				  value = fileObject.bytes;
 				  fileExtension = fileObject.extension.substring(1);
 				}
 				else
@@ -74,18 +74,25 @@ public final class CloudManager {
 					if (fileExtension == null)
 					  fileExtension = getExtensionFromContent(fileContent);
 
-					String filePath = aClass.getSimpleName().concat("/").concat(field.getName()).concat("/");
-					String identify = "";
-					for (String id : ids) {
-						if (!identify.isEmpty())
-							identify = identify.concat("-");
-						Field declaredId = aClass.getDeclaredField(id);
-						declaredId.setAccessible(true);
-						identify = identify.concat(id).concat("-").concat(String.valueOf(declaredId.get(sourceObject)));
-					}
-					identify = identify.concat(".").concat(fileExtension);
-					files.add(new FileObject("/".concat(filePath).concat(identify), fieldName, fileContent));
-				}
+          String filePath = aClass.getSimpleName().concat("/").concat(field.getName()).concat("/");
+          String identify = "";
+          for (String id : ids) {
+            if (!identify.isEmpty())
+              identify = identify.concat("-");
+            Field declaredId = aClass.getDeclaredField(id);
+            declaredId.setAccessible(true);
+            Object content = declaredId.get(sourceObject);
+            String contentAsString;
+            if (content == null)
+              contentAsString = "randonGen" + Operations.generateUUID();
+            else
+              contentAsString = String.valueOf(content);
+
+            identify = identify.concat(id).concat("-").concat(contentAsString);
+          }
+          identify = identify.concat(".").concat(fileExtension);
+          files.add(new FileObject("/".concat(filePath).concat(identify), fieldName, fileContent));
+        }
 
 			}
 		} catch (NoSuchFieldException | IllegalAccessException | UnsupportedEncodingException e) {
@@ -106,7 +113,7 @@ public final class CloudManager {
 			fileExtension = contentType.split("/")[1];
 		return fileExtension;
 	}
-	
+
 	private boolean isBase64Encoded(String value)
     {
       if (value == null || value.isEmpty())

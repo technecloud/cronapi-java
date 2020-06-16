@@ -1276,6 +1276,8 @@ public class DataSource implements JsonSerializable {
         }
 
         processCloudFields(instanceForUpdate);
+        //Quando o usuario atualiza com query, é necessário atualizar os parametros setados, caso haja Dropbox
+        updateQueryParamsValues(instanceForUpdate, paramsValues, parsedParams, strQuery);
 
         try {
           if (!em.getTransaction().isActive()) {
@@ -1291,6 +1293,26 @@ public class DataSource implements JsonSerializable {
       }
     } finally {
       endMultitetant();
+    }
+  }
+
+  private void updateQueryParamsValues(Object instanceForUpdate, Map<String, Var> paramsValues, List<String> parsedParams, TypedQuery<?> strQuery) {
+    List<String> fieldsAnnotationCloud = Utils.getFieldsWithAnnotationCloud(instanceForUpdate, "dropbox");
+    for (String f : fieldsAnnotationCloud) {
+      String field = f;
+      if (paramsValues.containsKey(field) && !paramsValues.get(field).isNull()) {
+        Object content = Utils.getFieldValue(instanceForUpdate, field);
+        if (!content.toString().equals(paramsValues.get(field).getObjectAsString())) {
+          for (int fi = 0; fi < parsedParams.size(); fi++) {
+            String paramName = "param" + fi;
+            String realParamName = parsedParams.get(fi);
+            if (realParamName.equals(field)) {
+              strQuery.setParameter(paramName, content);
+              break;
+            }
+          }
+        }
+      }
     }
   }
 
