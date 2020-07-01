@@ -204,7 +204,7 @@ public class AppConfig {
   public static String groupName() {
     JsonObject config = loadJSON();
     if (!isNull(config.get("auth"))) {
-      JsonElement elem = config.get("groupName").getAsJsonObject().get("groupName");
+      JsonElement elem = config.get("auth").getAsJsonObject().get("groupName");
       if (!isNull(elem)) {
         return elem.getAsString();
       }
