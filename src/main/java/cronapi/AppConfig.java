@@ -239,4 +239,16 @@ public class AppConfig {
 
     return 0;
   }
+
+  public static String searchFilter() {
+    JsonObject config = loadJSON();
+    if (!isNull(config.get("auth"))) {
+      JsonElement elem = config.get("auth").getAsJsonObject().get("searchFilter");
+      if (!isNull(elem)) {
+        return elem.getAsString();
+      }
+    }
+
+    return "(&(objectClass=user)(sAMAccountName={1}))";
+  }
 }
