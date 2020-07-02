@@ -274,7 +274,7 @@
     <dependency>
       <groupId>com.stimulsoft</groupId>
       <artifactId>stimulsoft-reports-report</artifactId>
-      <version>2020.1.1</version>
+      <version>2020.3.2</version>
     </dependency>
   </dependencies>
   <distributionManagement>
