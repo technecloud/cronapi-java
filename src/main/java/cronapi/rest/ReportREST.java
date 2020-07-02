@@ -2,6 +2,7 @@ package cronapi.rest;
 
 import cronapi.ErrorResponse;
 import cronapi.QueryManager;
+import cronapi.RestClient;
 import cronapi.i18n.Messages;
 import cronapi.report.DataSourcesInBand;
 import cronapi.report.ReportService;
