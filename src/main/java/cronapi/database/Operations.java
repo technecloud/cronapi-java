@@ -413,7 +413,6 @@ public class Operations {
 
         EntityManagerFactory factory = Persistence.createEntityManagerFactory(namespace.getObjectAsString());
         EntityManager em = factory.createEntityManager();
-        Class<?> clazz = Class.forName(nameClass.getObjectAsString());
 
         List<Var> values = param.getObjectAsList();
         List<String> args = new ArrayList<>();
@@ -427,29 +426,36 @@ public class Operations {
         }
 
         List<Object[]> result = query.getResultList();
-        Field[] fieldArray = clazz.getDeclaredFields();
         List<Object> returnValues = new ArrayList<>();
 
         // try parse
-        try {
-            for (Object value : result) {
-                Object instance = clazz.newInstance();
-                if (!(value instanceof Object[])) {
-                    fieldArray[0].setAccessible(true);
-                    fieldArray[0].set(instance, value);
-                } else {
-                    for (int i = 0; i < fieldArray.length; i++) {
-                        fieldArray[i].setAccessible(true);
-                        fieldArray[i].set(instance, ((Object[]) value)[i]);
+        if (!nameClass.isEmptyOrNull()) {
+
+            Class<?> clazz = Class.forName(nameClass.getObjectAsString());
+            Field[] fieldArray = clazz.getDeclaredFields();
+
+            try {
+
+                for (Object value : result) {
+                    Object instance = clazz.newInstance();
+                    if (!(value instanceof Object[])) {
+                        fieldArray[0].setAccessible(true);
+                        fieldArray[0].set(instance, value);
+                    } else {
+                        for (int i = 0; i < fieldArray.length; i++) {
+                            fieldArray[i].setAccessible(true);
+                            fieldArray[i].set(instance, ((Object[]) value)[i]);
+                        }
                     }
+                    returnValues.add(instance);
                 }
-                returnValues.add(instance);
+                return Var.valueOf(returnValues);
+
+            } catch (Exception e) {
             }
-        } catch (Exception e) {
-            // return result
-            return Var.valueOf(result);
         }
-        return Var.valueOf(returnValues);
+
+        return Var.valueOf(result);
     }
 
 }
