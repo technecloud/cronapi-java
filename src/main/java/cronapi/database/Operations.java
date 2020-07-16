@@ -455,7 +455,7 @@ public class Operations {
             }
         }
 
-        return  Var.valueOf(result);
+        return Var.valueOf(result);
     }
 
 
@@ -463,11 +463,11 @@ public class Operations {
             "procedure"}, description = "{{executeProcedureWithInOutDescription}}", params = {"{{namespace}}", "{{procedureName}}", "{{parameterMap}}",
             "{{paramteterListTypes}}", "{{paramteterListModes}}"}, paramsType = {ObjectType.STRING, ObjectType.STRING,
             ObjectType.MAP, ObjectType.LIST, ObjectType.LIST}, returnType = ObjectType.MAP)
-    public static Var executeProcedure(Var namespace,
-                                       Var storeProcedure,
-                                       Var param,
-                                       Var paramModes,
-                                       Var paramTypes
+    public static Var executeProcedureInOut(Var namespace,
+                                            Var storeProcedure,
+                                            Var param,
+                                            Var paramModes,
+                                            Var paramTypes
     ) throws Exception {
 
         Map mapReturn = new LinkedHashMap<>();
