@@ -447,7 +447,7 @@ public class Operations {
                             fieldArray[i].set(instance, ((Object[]) value)[i]);
                         }
                     }
-                    returnValues.add(instance);
+                    returnValues.add(Var.valueOf(instance));
                 }
                 return Var.valueOf(returnValues);
 
