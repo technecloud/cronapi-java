@@ -1,6 +1,9 @@
 package cronapi;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.utils.URIBuilder;
 
 import java.net.URI;
 
@@ -13,6 +16,28 @@ public class HttpGetWithBody extends HttpEntityEnclosingRequestBase {
   public HttpGetWithBody(final URI uri) {
     super();
     setURI(uri);
+  }
+
+  public HttpGetWithBody(final HttpRequestBase httpGet) {
+    super();
+    setURI(httpGet.getURI());
+    this.setHeaders(httpGet.getAllHeaders());
+  }
+
+  @Override
+  public void setEntity(final HttpEntity entity) {
+    super.setEntity(entity);
+    this.remakeURI();
+  }
+
+  private void remakeURI() {
+    try {
+      URI uri = new URIBuilder(this.getURI()).build();
+      this.setURI(uri);
+    }
+    catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
