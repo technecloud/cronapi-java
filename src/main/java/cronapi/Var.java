@@ -412,6 +412,8 @@ public class Var implements Comparable<Var>, JsonSerializable, OlingoJsonSeriali
       } catch (Exception e) {
         return getObjectAsRawList(LinkedList.class);
       }
+    } else if (Utils.isEntityClass(type) && _object != null && DataSource.class.isAssignableFrom(_object.getClass())) {
+      return Var.valueOf(getObjectAsDataSource().getObject()).getObject(type);
     } else {
       //create instance for Entity class
       if (Utils.isEntityClass(type) && _object != null
