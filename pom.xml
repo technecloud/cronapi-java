@@ -157,12 +157,12 @@
     <dependency>
       <groupId>org.eclipse.persistence</groupId>
       <artifactId>org.eclipse.persistence.core</artifactId>
-      <version>2.7.4</version>
+      <version>${eclipselink.version}</version>
     </dependency>
     <dependency>
       <groupId>org.eclipse.persistence</groupId>
       <artifactId>org.eclipse.persistence.antlr</artifactId>
-      <version>2.7.4</version>
+      <version>${eclipselink.version}</version>
     </dependency>
     <dependency>
       <groupId>com.dropbox.core</groupId>
@@ -178,7 +178,7 @@
     <dependency>
       <groupId>org.eclipse.persistence</groupId>
       <artifactId>eclipselink</artifactId>
-      <version>2.7.4</version>
+      <version>${eclipselink.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.eclipse.persistence</groupId>
@@ -306,5 +306,6 @@
     <project.cronospass.resource mimetype="folder/src">src/test/java</project.cronospass.resource>
     <odata.version>2.7.0</odata.version>
     <reports.version>2.7.0</reports.version>
+    <eclipselink.version>2.7.7</eclipselink.version>
   </properties>
 </project>
