@@ -6,10 +6,10 @@ public class HttpGetWithBody extends HttpWithBody {
 
   public final static String METHOD_NAME = "GET";
 
-  public HttpGetWithBody(final HttpRequestBase httpGet) {
+  public HttpGetWithBody(final HttpRequestBase http) {
     super();
-    setURI(httpGet.getURI());
-    this.setHeaders(httpGet.getAllHeaders());
+    setURI(http.getURI());
+    this.setHeaders(http.getAllHeaders());
   }
 
   @Override
