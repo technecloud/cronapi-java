@@ -465,8 +465,8 @@ public class Operations {
   private static final String APPLICATION_JSON = "application/json";
 
   private static boolean isMethodWithBodyNonDefault(Var postData, Var params, String methodAsString) {
-    return !postData.isNull() && params.isNull() && (methodAsString.equalsIgnoreCase(HttpDelete.METHOD_NAME)
-            || methodAsString.equalsIgnoreCase(HttpGet.METHOD_NAME));
+    return !postData.isNull() && params.isNull() && (HttpDelete.METHOD_NAME.equalsIgnoreCase(methodAsString)
+            || HttpGet.METHOD_NAME.equalsIgnoreCase(methodAsString));
   }
 
   private static final Var getContentFromURL(Var method, Var contentType, Var address, Var params,
@@ -476,19 +476,19 @@ public class Operations {
     HttpClient httpClient = HttpClients.createSystem();
     final HttpRequestBase httpMethod;
 
-    if (methodAsString.equalsIgnoreCase(HttpPost.METHOD_NAME)) {
+    if (HttpPost.METHOD_NAME.equalsIgnoreCase(methodAsString)) {
       httpMethod = new HttpPost(address.getObjectAsString());
-    } else if (methodAsString.equalsIgnoreCase(HttpPut.METHOD_NAME)) {
+    } else if (HttpPut.METHOD_NAME.equalsIgnoreCase(methodAsString)) {
       httpMethod = new HttpPut(address.getObjectAsString());
-    } else if (methodAsString.equalsIgnoreCase(HttpDelete.METHOD_NAME)) {
+    } else if (HttpDelete.METHOD_NAME.equalsIgnoreCase(methodAsString)) {
       httpMethod = new HttpDelete(address.getObjectAsString());
-    } else if (methodAsString.equalsIgnoreCase(HttpPatch.METHOD_NAME)) {
+    } else if (HttpPatch.METHOD_NAME.equalsIgnoreCase(methodAsString)) {
       httpMethod = new HttpPatch(address.getObjectAsString());
-    } else if (methodAsString.equalsIgnoreCase(HttpHead.METHOD_NAME)) {
+    } else if (HttpHead.METHOD_NAME.equalsIgnoreCase(methodAsString)) {
       httpMethod = new HttpHead(address.getObjectAsString());
-    } else if (methodAsString.equalsIgnoreCase(HttpOptions.METHOD_NAME)) {
+    } else if (HttpOptions.METHOD_NAME.equalsIgnoreCase(methodAsString)) {
       httpMethod = new HttpOptions(address.getObjectAsString());
-    } else if (methodAsString.equalsIgnoreCase(HttpTrace.METHOD_NAME)) {
+    } else if (HttpTrace.METHOD_NAME.equalsIgnoreCase(methodAsString)) {
       httpMethod = new HttpTrace(address.getObjectAsString());
     } else {
       httpMethod = new HttpGet(address.getObjectAsString());
@@ -511,8 +511,8 @@ public class Operations {
       StringEntity postDataList = new StringEntity(postData.getObjectAsString(), Charset.forName(cronapi.CronapiConfigurator.ENCODING));
       postDataList.setContentType(contentType.getObjectAsString());
 
-      HttpEntityEnclosingRequestBase httpMethodWidthBody;
-      httpMethodWidthBody = methodAsString.equalsIgnoreCase(HttpDelete.METHOD_NAME) ? new HttpDeleteWithBody(httpMethod) : new HttpGetWithBody(httpMethod);
+      HttpWithBody httpMethodWidthBody;
+      httpMethodWidthBody = HttpDelete.METHOD_NAME.equalsIgnoreCase(methodAsString) ? new HttpDeleteWithBody(httpMethod) : new HttpGetWithBody(httpMethod);
       httpMethodWidthBody.setEntity(postDataList);
       httpResponse = httpClient.execute(httpMethodWidthBody);
     } else if (!params.isNull() && postData.isNull()) {
@@ -520,7 +520,7 @@ public class Operations {
 
         HttpEntityEnclosingRequestBase httpEntityEnclosingRequestBase = (HttpEntityEnclosingRequestBase) httpMethod;
 
-        if (params.getObject() instanceof Map && contentType.getObjectAsString().equals(APPLICATION_X_WWW_FORM_URLENCODED)) {
+        if (params.getObject() instanceof Map && APPLICATION_X_WWW_FORM_URLENCODED.equals(contentType.getObjectAsString())) {
 
           Map<?, ?> mapObject = params.getObjectAsMap();
           List<NameValuePair> paramsData = new LinkedList<>();
@@ -575,7 +575,7 @@ public class Operations {
 
         HttpEntityEnclosingRequestBase httpEntityEnclosingRequestBase = (HttpEntityEnclosingRequestBase) httpMethod;
 
-        if (contentType.getObjectAsString().equals(APPLICATION_X_WWW_FORM_URLENCODED)) {
+        if (APPLICATION_X_WWW_FORM_URLENCODED.equals(contentType.getObjectAsString())) {
           httpEntityEnclosingRequestBase.setEntity(new UrlEncodedFormEntity(bothDataList, cronapi.CronapiConfigurator.ENCODING));
         } else {
           JsonObject fusionObject = new JsonObject();
