@@ -69,6 +69,9 @@ import java.util.stream.Stream;
 
 @Service
 public class ReportService {
+
+  public static final String SINGLE_QUOTE = "'";
+
   static {
     com.stimulsoft.base.licenses.StiLicense.setKey("" +
         "6vJhGtLLLz2GNviWmUTrhSqnOItdDwjBylQzQcAOiHl4mF8Yy+Msl8Mjp+nbkDv52zYAIT+dpsXLWIrkoWUKLuRM23" +
@@ -280,6 +283,8 @@ public class ReportService {
   }
 
   private static String toFilter(JsonObject expressionJson, Map<String, String> values) {
+    if (expressionJson == null)
+      return "";
     JsonArray expressionArgs = expressionJson.getAsJsonArray("args");
     JsonPrimitive expressionType = expressionJson.getAsJsonPrimitive("type");
     JsonPrimitive expressionLeft = expressionJson.getAsJsonPrimitive("left");
@@ -319,18 +324,100 @@ public class ReportService {
     }
   }
 
+  private static String removeSingleQuote(String value) {
+    if (value.startsWith(SINGLE_QUOTE) && value.endsWith(SINGLE_QUOTE)) {
+      return value.replaceAll("(^')|('$)","");
+    }
+    return value;
+  }
+
+  private static String getFieldValue(String s, Map<String, String> values) {
+    if (s.startsWith(":")) {
+      String parameterName = s.substring(1);
+      if (values.containsKey(parameterName)) {
+        return values.get(parameterName);
+      }
+      return "";
+    }
+    return removeSingleQuote(s);
+  }
+
+  private static String toQueryString(JsonArray paramsJson, Map<String, String> values) {
+    if (paramsJson == null || paramsJson.size() == 0)
+      return "";
+
+    String queryString = "";
+    if (paramsJson != null) {
+      for (JsonElement p: paramsJson) {
+        JsonObject param = p.getAsJsonObject();
+        queryString += param.get("fieldName").getAsString();
+        queryString += "=";
+        queryString += getFieldValue(param.get("fieldValue").getAsString(), values);
+        queryString += "&";
+      }
+      queryString = queryString.substring(0, queryString.length() - 1);
+    }
+    return queryString;
+  }
+
+  private static String getQueryId(String query) {
+    return query.split("\\?", 2)[0];
+  }
+
+  private static JsonObject genParamsBasedOnValues(Map<String, String> values) {
+    JsonArray params = new JsonArray();
+    values.forEach((key, value) -> {
+      JsonObject param = new JsonObject();
+      param.addProperty("fieldName", key);
+      param.addProperty("fieldValue", ":" + key);
+      params.add(param);
+    });
+
+    JsonObject container = new JsonObject();
+    container.add("params", params);
+
+    return container;
+  }
+
+  private static JsonObject getQueryJson(String query, Map<String, String> values) {
+    String[] querySlices = query.split("\\?", 2);
+
+    if (querySlices.length == 1 && values != null && !values.isEmpty()) {
+      return genParamsBasedOnValues(values);
+    }
+    else if (querySlices.length == 2) {
+      JsonParser jsonParser = new JsonParser();
+      return (JsonObject) jsonParser.parse(querySlices[1]);
+    }
+    return null;
+
+  }
+
   private static String bindParameters(String query, Map<String, String> values) {
     final String SERVICE_ROOT_URI = "https://localhost/";
-    String[] querySlices = query.split("\\?", 2);
-    if (querySlices.length == 2) {
-      JsonParser jsonParser = new JsonParser();
-      JsonObject queryJson = (JsonObject) jsonParser.parse(querySlices[1]);
+
+    JsonObject queryJson = getQueryJson(query, values);
+
+    if (queryJson != null) {
+      String result = "";
+
       JsonObject expressionJson = queryJson.getAsJsonObject("expression");
-      String filter = toFilter(expressionJson, values);
-      URIBuilder uriBuilder = ODataClient.newInstance().uriBuilder(SERVICE_ROOT_URI);
-      uriBuilder.appendEntitySetSegment(querySlices[0]);
-      uriBuilder.filter(filter);
-      return uriBuilder.build().toString().replaceFirst(SERVICE_ROOT_URI, "");
+      String filterExpression = toFilter(expressionJson, values);
+      if (StringUtils.isNotEmpty(filterExpression)) {
+        URIBuilder uriBuilder = ODataClient.newInstance().uriBuilder(SERVICE_ROOT_URI);
+        uriBuilder.appendEntitySetSegment(getQueryId(query));
+        uriBuilder.filter(filterExpression);
+        result = uriBuilder.build().toString().replaceFirst(SERVICE_ROOT_URI, "");
+      }
+
+      JsonArray paramsJson = queryJson.getAsJsonArray("params");
+      String filterParams = toQueryString(paramsJson, values);
+      if (StringUtils.isNotEmpty(result))
+        result += "&" + filterParams;
+      else
+        result = getQueryId(query) + "?" + filterParams;
+
+      return result;
     }
 
     return query;
