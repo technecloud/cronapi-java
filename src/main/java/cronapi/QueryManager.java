@@ -558,9 +558,7 @@ public class QueryManager {
         return true;
       }
       catch (Exception e) {
-        if (Messages.getString("notAllowed").equalsIgnoreCase(e.getMessage()))
-          return false;
-        throw e;
+        return false;
       }
 
     }
