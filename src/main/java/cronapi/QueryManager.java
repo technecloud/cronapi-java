@@ -413,6 +413,11 @@ public class QueryManager {
 
   public static boolean isFieldAuthorized(Class clazzToCheck, String key, String method)
       throws Exception {
+
+    if (QueryManager.DISABLE_AUTH) {
+      return true;
+    }
+
     RestClient client = RestClient.getRestClient();
     if (client.getRequest() != null) {
       if (clazzToCheck != null) {
@@ -539,6 +544,10 @@ public class QueryManager {
 
   public static boolean isFieldAuthorized(JsonObject query, String field, String method)
       throws Exception {
+
+    if (QueryManager.DISABLE_AUTH) {
+      return true;
+    }
 
     //Caso o field seja o _objectKey, será verificado a permissão do verbo, pois é campo gerado dinamicamente, o usuário não seta permissão
     //específica para esse campo na fonte de dados
