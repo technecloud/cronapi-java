@@ -12,10 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URISyntaxException;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.logging.Level;
@@ -80,16 +77,15 @@ public class ImportBlocklyREST {
     }
   }
 
-  private void fill(Path base, Path folder, List<String> imports) throws IOException {
-    try (var stream = Files.walk(folder)) {
+  private void fill(Path base, List<String> imports) throws IOException {
+    try (var stream = Files.walk(base)) {
       stream
           .filter(ImportBlocklyREST::isValidApiPath)
-          .map(base::relativize)
-          .forEach(candidate -> addImport(candidate, imports));
+          .forEach(candidate -> addImport(base, candidate, imports));
     }
   }
 
-  private void addImport(Path path, List<String> imports) {
+  private void addImport(Path base, Path path, List<String> imports) {
     String hash = "";
 
     try {
@@ -108,7 +104,7 @@ public class ImportBlocklyREST {
     }
 
 
-    var pathString = path.toString();
+    var pathString = base.relativize(path).toString();
 
     if (pathString.endsWith(".blockly.js")) {
       var js = pathString.replace("\\", "/");
@@ -128,16 +124,32 @@ public class ImportBlocklyREST {
       synchronized (ImportBlocklyREST.class) {
         if (shouldInitializeImports) {
           List<String> fillImports = new ArrayList<>();
-          var folderUri = request.getServletContext().getResource("/").toURI();
-          try (var ignored = FileSystems.newFileSystem(folderUri, Map.of("create", "true"))) {
-            var folderPath = Paths.get(folderUri);
-            fill(folderPath, folderPath, fillImports);
+          FileSystem fileSystem = null;
+
+          Path folderPath;
+          var servletContext = request.getServletContext();
+          var folderRealPath = servletContext.getRealPath("/");
+
+          if (folderRealPath == null) {
+            var folderUri = request.getServletContext().getResource("/").toURI();
+            fileSystem = FileSystems.newFileSystem(folderUri, Map.of("create", "true"));
+            folderPath = Paths.get(folderUri);
+          } else {
+            folderPath = Paths.get(folderRealPath);
+          }
+
+          try {
+            fill(folderPath, fillImports);
             if (!Operations.IS_DEBUG) {
               imports = fillImports;
               shouldInitializeImports = false;
             } else {
               fillLanguages(folderPath);
               write(out, fillImports);
+            }
+          } finally {
+            if (fileSystem != null) {
+              fileSystem.close();
             }
           }
         }
