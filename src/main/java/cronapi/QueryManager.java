@@ -544,7 +544,7 @@ public class QueryManager {
 
   public static boolean isDynamicField(JsonObject query, String field) {
     JsonElement dfv = query.get("defaultValuesProperties");
-    if (!isNull(dfv)) {
+    if (!isNull(dfv) && dfv.isJsonObject()) {
       JsonObject defaultValuesProperties = dfv.getAsJsonObject();
       return !defaultValuesProperties.has(field);
     }
