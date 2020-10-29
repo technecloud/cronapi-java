@@ -23,7 +23,7 @@ public class TokenUtils {
     return username;
   }
 
-  private static Claims getClaimsFromToken(String token) {
+  public static Claims getClaimsFromToken(String token) {
     Claims claims;
     try {
       claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();

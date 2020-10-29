@@ -3,6 +3,10 @@ package cronapi.screen;
 import cronapi.*;
 import cronapi.CronapiMetaData.CategoryType;
 import cronapi.CronapiMetaData.ObjectType;
+import io.jsonwebtoken.Claims;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @CronapiMetaData(category = CategoryType.SCREEN, categoryTags = { "Formulário", "Form", "Frontend" })
 public class Operations {
@@ -48,4 +52,33 @@ public class Operations {
     Var result =  Var.valueOf(RestClient.getRestClient().getHeader(TokenUtils.AUTH_HEADER_NAME));
     return result;
   }
+
+  @CronapiMetaData(type = "function", name = "{{getTokenClaim}}", nameTags = {
+      "token", "claim" }, description = "{{getTokenClaimDescription}}", returnType = ObjectType.STRING)
+  public static final Var getTokenClaim(
+      @ParamMetaData( type = ObjectType.STRING, description="{{getTokenClaimKey}}") Var key) throws Exception {
+	  Claims claims = TokenUtils.getClaimsFromToken(RestClient.getRestClient().getHeader(TokenUtils.AUTH_HEADER_NAME));
+
+    return Var.valueOf(claims.get(key.getObjectAsString()));
+  }
+
+  @CronapiMetaData(type = "function", name = "{{getTokenClaims}}", nameTags = {
+      "token", "claim" }, description = "{{getTokenClaimsDescription}}", returnType = ObjectType.STRING)
+  public static final Var getTokenClaims() throws Exception {
+    Claims claims = TokenUtils.getClaimsFromToken(RestClient.getRestClient().getHeader(TokenUtils.AUTH_HEADER_NAME));
+    Var result = Var.valueOf(new HashMap<>());
+    for (Map.Entry entry: claims.entrySet()) {
+      result.put(entry.getKey(), Var.valueOf(entry.getValue()));
+    }
+    return result;
+  }
+
+  @CronapiMetaData(type = "function", name = "{{addTokenClaim}}", nameTags = {
+      "token", "claim" }, description = "{{addTokenClaimDescription}}", returnType = ObjectType.STRING)
+  public static final void addTokenClaim(
+      @ParamMetaData( type = ObjectType.STRING, description="{{addTokenClaimKey}}") Var key,
+      @ParamMetaData( type = ObjectType.STRING, description="{{addTokenClaimValue}}") Var value) throws Exception {
+    RestClient.getRestClient().getRequest().setAttribute("CronappToken:" + key.getObjectAsString(), value.getObjectAsString());
+  }
+
 }
