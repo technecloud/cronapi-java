@@ -154,7 +154,10 @@ public class QueryExtensionEntityListener extends ODataJPAQueryExtensionEntityLi
           findInputParams(jpqlExpression, inputs);
 
           selectStatement = ((SelectStatement) jpqlExpression.getQueryStatement());
+          String selection = ((SelectClause) selectStatement.getSelectClause()).getSelectExpression().toActualText();
           mainAlias = JPQLParserUtil.getMainAlias(jpqlExpression);
+          if (selection.contains(mainAlias+"."))
+            mainAlias = null;
 
           if (uriInfo.rawEntity()) {
             ReflectionUtils.setField(selectStatement, "selectClause", null);
