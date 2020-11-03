@@ -4,8 +4,10 @@ import cronapi.*;
 import cronapi.CronapiMetaData.CategoryType;
 import cronapi.CronapiMetaData.ObjectType;
 import io.jsonwebtoken.Claims;
+import org.apache.commons.lang.StringUtils;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @CronapiMetaData(category = CategoryType.SCREEN, categoryTags = { "Formulário", "Form", "Frontend" })
@@ -78,7 +80,27 @@ public class Operations {
   public static final void addTokenClaim(
       @ParamMetaData( type = ObjectType.STRING, description="{{addTokenClaimKey}}") Var key,
       @ParamMetaData( type = ObjectType.STRING, description="{{addTokenClaimValue}}") Var value) throws Exception {
-    RestClient.getRestClient().getRequest().setAttribute("CronappToken:" + key.getObjectAsString(), value.getObjectAsString());
+	  boolean fromAuth = false;
+	  for (StackTraceElement element: Thread.currentThread().getStackTrace()) {
+	    if (element.getClassName().equals("cronapp.framework.authentication.token.AuthenticationController")) {
+        fromAuth = true;
+        break;
+      }
+    }
+	  if (fromAuth) {
+      RestClient.getRestClient().getRequest().setAttribute("CronappToken:" + key.getObjectAsString(), value.getObjectAsString());
+    } else {
+      String token = RestClient.getRestClient().getRequest().getHeader(TokenUtils.AUTH_HEADER_NAME);
+      if (StringUtils.isNotEmpty(token)) {
+        String newToken = TokenUtils.addClaimToToken(token, key.getObjectAsString(), value.getObjectAsString());
+        ClientCommand command = new ClientCommand("cronapi.util.setToken");
+        command.addParam(List.of(newToken));
+
+        RestClient.getRestClient().addCommand(command);
+      } else {
+        throw new RuntimeException("Token is not in the header");
+      }
+    }
   }
 
 }
