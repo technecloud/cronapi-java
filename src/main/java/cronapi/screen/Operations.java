@@ -94,7 +94,7 @@ public class Operations {
       if (StringUtils.isNotEmpty(token)) {
         String newToken = TokenUtils.addClaimToToken(token, key.getObjectAsString(), value.getObjectAsString());
         ClientCommand command = new ClientCommand("cronapi.util.setToken");
-        command.addParam(List.of(newToken));
+        command.addParam(newToken);
 
         RestClient.getRestClient().addCommand(command);
       } else {
