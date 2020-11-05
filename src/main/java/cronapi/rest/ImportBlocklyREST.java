@@ -36,10 +36,10 @@ public class ImportBlocklyREST {
 
   private static boolean isValidApiPath(Path path) {
     var pathString = path.toString();
-    return API_PATHS.stream().anyMatch(pathString::contains);
+    return API_PATHS.stream().noneMatch(pathString::contains);
   }
 
-  private static boolean isValidLocalePath(Path path) {
+  private static boolean isValidLocalePath(String path) {
     return path.startsWith("locale") && path.endsWith(".json");
   }
 
@@ -53,14 +53,15 @@ public class ImportBlocklyREST {
     }
 
     try (var stream = Files.walk(i18nPath)) {
-      stream.filter(ImportBlocklyREST::isValidLocalePath)
+      stream
+          .map(path -> path.getFileName().toString())
+          .filter(ImportBlocklyREST::isValidLocalePath)
           .forEach(ImportBlocklyREST::addLocale);
     }
   }
 
-  private static void addLocale(Path path) {
-    var pathString = path.toString();
-    String localeName = pathString.substring(7, pathString.length() - 5);
+  private static void addLocale(String path) {
+    String localeName = path.substring(7, path.length() - 5);
     fillLanguageSet(localeName);
   }
 
