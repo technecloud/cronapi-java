@@ -44,7 +44,7 @@ public class TransactionManager {
     String namespace = domainClass.getPackage().getName().replace(".entity", "");
     if (mapNamespace != null && cache) {
       EntityManager emNamespace = mapNamespace.get(namespace);
-      if (emNamespace != null) {
+      if (emNamespace != null && emNamespace.isOpen()) {
         return emNamespace;
       }
     }
