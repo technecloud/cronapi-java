@@ -256,6 +256,7 @@
       <groupId>org.seleniumhq.selenium</groupId>
       <artifactId>selenium-java</artifactId>
       <version>3.141.59</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.amazonaws</groupId>
@@ -267,10 +268,35 @@
       <artifactId>stimulsoft-reports-report</artifactId>
       <version>2020.3.2</version>
     </dependency>
+    <!-- Test Dependencies -->
     <dependency>
       <groupId>org.jvnet.mock-javamail</groupId>
       <artifactId>mock-javamail</artifactId>
       <version>1.9</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>${junit-jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.18.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-inline</artifactId>
+      <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -298,5 +324,8 @@
     <odata.version>2.7.0</odata.version>
     <reports.version>2.7.0</reports.version>
     <eclipselink.version>2.7.7</eclipselink.version>
+    <junit-jupiter.version>5.7.0</junit-jupiter.version>
+    <junit-platform.version>1.7.0</junit-platform.version>
+    <mockito.version>3.5.15</mockito.version>
   </properties>
 </project>
