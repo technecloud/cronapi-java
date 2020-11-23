@@ -357,8 +357,8 @@ public class Operations {
     }
 
     private static Query createNativeQuery(Var entity, Var isModififyQuery, String query) throws Exception {
-        String namespace = entity.getObjectAsString().split("\\.")[0];
         Class<?> domainClass = Class.forName(entity.getObjectAsString());
+        String namespace = domainClass.getPackage().getName().replace(".entity", "");
         if (!isModififyQuery.getObjectAsBoolean()) {
             EntityManagerFactory factory = Persistence.createEntityManagerFactory(namespace);
             EntityManager entityManager = factory.createEntityManager();
