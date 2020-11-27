@@ -430,18 +430,30 @@ public class ReportService {
     System.out.println(bindParameters(query, values));
   }
 
-  /**
-   * TODO adicionar mais um parametro: params, para passar para o datasource do report,
-   * de acordo com o StimulsoftHelper
-   */
+  public void exportStimulsoftReportContentToFile(String reportContent, File file, Map<String, String> parameters, String type, Boolean legancy) throws Exception {
+    if (!reportContent.isEmpty()) {
+      StiReport stiReport = new StiReport();
+      stiReport.loadFromJson(reportContent);
+      exportStimulsoftReportToFile(stiReport, file, parameters, type, legancy);
+    }
+  }
 
   void exportStimulsoftReportToFile(String reportName, File file, Map<String, String> parameters, String type, Boolean legancy) {
     StiReport stiReport = null;
     try {
+
       try (InputStream inputStream = this.getInputStream(reportName)) {
         stiReport = StiSerializeManager.deserializeReport(inputStream);
+        exportStimulsoftReportToFile(stiReport, file, parameters, type, legancy);
       }
 
+    } catch (IOException | SAXException | StiDeserializationException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  void exportStimulsoftReportToFile(StiReport stiReport, File file, Map<String, String> parameters, String type, Boolean legancy) {
+    try {
       if (legancy) {
         stiReport.getDataSources().forEach(stiDataSource -> {
           if (stiDataSource instanceof StiODataSource) {
@@ -475,7 +487,7 @@ public class ReportService {
         }
       }
 
-    } catch (IOException | SAXException | StiDeserializationException | StiException e) {
+    } catch (IOException | StiException e) {
       log.error("Problems exporting stimulsoft report to pdf file.");
       throw new RuntimeException(e);
     } finally {

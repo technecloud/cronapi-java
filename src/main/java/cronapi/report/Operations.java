@@ -39,41 +39,80 @@ public class Operations {
       "GerarRelatorio"}, description = "{{generateReportDescription}}", returnType = ObjectType.OBJECT, wizard = "procedures_generatereport_callreturn")
   public static final Var generateReport(@ParamMetaData(blockType = "util_report_list", type = ObjectType.STRING, description = "{{report}}") Var reportName,
                                          @ParamMetaData(type = ObjectType.STRING, description = "{{path}}") Var path) throws Exception {
-    return generateReport(reportName, path, Var.VAR_NULL);
+    return generateReport(reportName, path, Var.VAR_NULL, Var.VAR_NULL, true);
   }
 
   @CronapiMetaData(type = "function", name = "{{generateReportWithParam}}", nameTags = {"generateReport",
       "GerarRelatorio"}, description = "{{generateReportDescription}}", returnType = ObjectType.OBJECT)
-  public static final Var generateReport(@ParamMetaData(type = ObjectType.STRING, description = "{{report}}") Var reportName,
-                                         @ParamMetaData(type = ObjectType.STRING, description = "{{path}}") Var path,
-                                         @ParamMetaData(type = ObjectType.MAP, description = "{{params}}") Var params) throws Exception {
-    return generateReport(reportName, path, params, false);
+  public static final Var generateReportWithParam(@ParamMetaData(type = ObjectType.STRING, description = "{{report}}") Var reportName,
+                                                  @ParamMetaData(type = ObjectType.STRING, description = "{{type}}", blockType = "util_dropdown", keys = {
+                                                      "pdf", "html" }, values = {"PDF", "HTML"}) Var type,
+                                                  @ParamMetaData(type = ObjectType.STRING, description = "{{path}}") Var path,
+                                                  @ParamMetaData(type = ObjectType.MAP, description = "{{params}}") Var params) throws Exception {
+    return generateReport(reportName, path, params, type,false);
   }
 
-  public static final Var generateReport(Var reportName, Var path, Var params, Boolean legancy) {
+  @CronapiMetaData(type = "function", name = "{{generateReportWithJsonContent}}", nameTags = {"generateReport",
+      "GerarRelatorio"}, description = "{{generateReportDescription}}", returnType = ObjectType.OBJECT)
+  public static final Var generateReportWithJsonContent(@ParamMetaData(type = ObjectType.STRING, description = "{{reportContent}}") Var reportContent,
+                                                        @ParamMetaData(type = ObjectType.STRING, description = "{{type}}", blockType = "util_dropdown", keys = {
+                                                        "pdf", "html" }, values = {"PDF", "HTML"}) Var type,
+                                                        @ParamMetaData(type = ObjectType.STRING, description = "{{path}}") Var path,
+                                                        @ParamMetaData(type = ObjectType.MAP, description = "{{params}}") Var params) throws Exception {
+    return generateStimulsoftReport(reportContent, path, params, type);
+  }
+
+  private static Map normalizeParameters(Var params) {
+
+    Map<String, Object> parameters = new HashMap<>();
+
+    if (params.getType() == Var.Type.LIST) {
+      for (Object param : params.getObjectAsList()) {
+        if (!Var.valueOf(param).isEmptyOrNull())
+          parameters.put(Var.valueOf(param).getId(), Var.valueOf(param).getObjectAsString());
+      }
+    } else {
+      for (Object  entry: params.getObjectAsMap().entrySet()) {
+        Map.Entry<String, Var> m = (Map.Entry<String, Var>) entry;
+        parameters.put(m.getKey(), m.getValue().getObject());
+      }
+    }
+
+    return parameters;
+  }
+
+  public static final Var generateStimulsoftReport(Var reportContent, Var path, Var params, Var type) throws Exception {
+
+    if (!reportContent.isEmptyOrNull() && !path.isEmptyOrNull()) {
+
+      String typeVar = "pdf";
+      if (!type.isEmptyOrNull()) typeVar = type.getObjectAsString();
+
+      File file = new File(path.getObjectAsString());
+      ReportService service = new ReportService();
+
+      service.exportStimulsoftReportContentToFile(reportContent.getObjectAsString(), file, normalizeParameters(params), typeVar, false);
+      return Var.valueOf(file);
+
+    } else {
+      throw new RuntimeException("Error without parameters/content");
+    }
+
+  }
+
+  public static final Var generateReport(Var reportName, Var path, Var params, Var type, Boolean legacy) {
     File file;
     if (!reportName.isNull() || !path.isNull()) {
       ReportService service = new ReportService();
       if (reportName.getObjectAsString().endsWith(".report")) {
         file = new File(path.getObjectAsString());
 
-        Map<String, String> parameters = new HashMap<>();
-        if (params.getType() == Var.Type.LIST) {
-          for (Object param : params.getObjectAsList()) {
-            if (!Var.valueOf(param).isEmptyOrNull())
-              parameters.put(Var.valueOf(param).getId(), Var.valueOf(param).getObjectAsString());
-          }
-        } else {
-          for (Object  entry: params.getObjectAsMap().entrySet()) {
-              Map.Entry<String, Var> m = (Map.Entry<String, Var>) entry;
-              parameters.put(m.getKey(), m.getValue().getObjectAsString());
-          }
-        }
+        Map<String, String> parameters = normalizeParameters(params);
 
-        if (legancy) {
+        if (legacy) {
           service.exportStimulsoftReportToPdfFile(reportName.getObjectAsString(), file, parameters);
         } else {
-          service.exportStimulsoftReportToFile(reportName.getObjectAsString(), file, parameters, "pdf", false);
+          service.exportStimulsoftReportToFile(reportName.getObjectAsString(), file, parameters, type.getObjectAsString(), false);
         }
 
       } else {
