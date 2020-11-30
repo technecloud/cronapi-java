@@ -1,28 +1,19 @@
 package cronapi.report;
 
 import com.google.gson.*;
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
-import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
-import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.stimulsoft.base.exception.StiException;
 import com.stimulsoft.base.serializing.StiDeserializationException;
+import com.stimulsoft.lib.utils.StiValidationUtil;
 import com.stimulsoft.report.StiExportManager;
 import com.stimulsoft.report.StiOptions.Services;
 import com.stimulsoft.report.StiReport;
 import com.stimulsoft.report.StiSerializeManager;
-import com.stimulsoft.report.enums.StiExportFormat;
-import com.stimulsoft.report.export.service.StiExportService;
-import com.stimulsoft.report.export.settings.StiHtml5ExportSettings;
 import com.stimulsoft.report.export.settings.StiHtmlExportSettings;
 import com.stimulsoft.report.export.settings.StiPdfExportSettings;
 import com.stimulsoft.report.export.tools.html.StiHtmlExportQuality;
 import cronapi.CronapiConfigurator;
 import cronapi.CronapiException;
 import cronapi.QueryManager;
-import cronapi.Var;
 import cronapi.report.DataSourcesInBand.FieldParam;
 import cronapi.report.DataSourcesInBand.ParamValue;
 import cronapi.report.odata.StiODataDatabase;
@@ -71,6 +62,8 @@ import java.util.stream.Stream;
 public class ReportService {
 
   public static final String SINGLE_QUOTE = "'";
+  private static final String TYPE_PDF = "pdf";
+  private static final String TYPE_HTML = "html";
 
   static {
     com.stimulsoft.base.licenses.StiLicense.setKey("" +
@@ -130,9 +123,9 @@ public class ReportService {
   public String getContentReport(String reportName) {
     try (InputStream inputStream = this.getInputStream(reportName)) {
       try (BufferedReader buffer = new BufferedReader(new InputStreamReader(inputStream, CronapiConfigurator.ENCODING))) {
-          String content = buffer.lines().collect(Collectors.joining("\n"));
-          JsonObject json = (JsonObject) new JsonParser().parse(content);
-          json.addProperty("reportName", reportName);
+        String content = buffer.lines().collect(Collectors.joining("\n"));
+        JsonObject json = (JsonObject) new JsonParser().parse(content);
+        json.addProperty("reportName", reportName);
         return json.toString();
       }
     } catch (Exception e) {
@@ -177,24 +170,24 @@ public class ReportService {
     byte[] bytes = new byte[0];
     String reportName = reportFront.getReportName();
     if (reportName.contains(".report")) {
-        File file = exportReportFile(reportFront, "pdf");
-        if (file.exists()) {
-            try {
-                bytes = Files.readAllBytes(file.toPath());
-                file.delete();
-                log.info("Temporary report file removed.");
-            } catch (IOException io) {
-                log.error("Problems to make the temporary report file.");
-                throw new RuntimeException(io);
-            }
+      File file = exportReportFile(reportFront, TYPE_PDF);
+      if (file.exists()) {
+        try {
+          bytes = Files.readAllBytes(file.toPath());
+          file.delete();
+          log.info("Temporary report file removed.");
+        } catch (IOException io) {
+          log.error("Problems to make the temporary report file.");
+          throw new RuntimeException(io);
         }
+      }
     } else {
-       ReportExport result = this.getReportExport(reportFront);
-       if (result == null) {
-           return new byte[0];
-       } else  {
-           bytes = result.toPDF();
-        }
+      ReportExport result = this.getReportExport(reportFront);
+      if (result == null) {
+        return new byte[0];
+      } else {
+        bytes = result.toPDF();
+      }
     }
     return bytes;
   }
@@ -326,7 +319,7 @@ public class ReportService {
 
   private static String removeSingleQuote(String value) {
     if (value.startsWith(SINGLE_QUOTE) && value.endsWith(SINGLE_QUOTE)) {
-      return value.replaceAll("(^')|('$)","");
+      return value.replaceAll("(^')|('$)", "");
     }
     return value;
   }
@@ -348,7 +341,7 @@ public class ReportService {
 
     String queryString = "";
     if (paramsJson != null) {
-      for (JsonElement p: paramsJson) {
+      for (JsonElement p : paramsJson) {
         JsonObject param = p.getAsJsonObject();
         queryString += param.get("fieldName").getAsString();
         queryString += "=";
@@ -384,8 +377,7 @@ public class ReportService {
 
     if (querySlices.length == 1 && values != null && !values.isEmpty()) {
       return genParamsBasedOnValues(values);
-    }
-    else if (querySlices.length == 2) {
+    } else if (querySlices.length == 2) {
       JsonParser jsonParser = new JsonParser();
       return (JsonObject) jsonParser.parse(querySlices[1]);
     }
@@ -430,61 +422,84 @@ public class ReportService {
     System.out.println(bindParameters(query, values));
   }
 
-  /**
-   * TODO adicionar mais um parametro: params, para passar para o datasource do report,
-   * de acordo com o StimulsoftHelper
-   */
+  public void exportStimulsoftReportContentToFile(String reportContent, File file, Map<String, String> parameters, String type, Boolean isLegacyReport) throws Exception {
+    if (!reportContent.isEmpty()) {
+      StiReport stiReport = new StiReport();
+      stiReport.loadFromJson(reportContent);
+      exportStimulsoftReportToFile(stiReport, file, parameters, type, isLegacyReport);
+    }
+  }
+
+  void exportStimulsoftReportToFile(String reportName, File file, Map<String, String> parameters, String type, Boolean isLegacyReport) {
+    StiReport stiReport = null;
+    try {
+
+      try (InputStream inputStream = this.getInputStream(reportName)) {
+        stiReport = StiSerializeManager.deserializeReport(inputStream);
+        exportStimulsoftReportToFile(stiReport, file, parameters, type, isLegacyReport);
+      }
+
+    } catch (IOException | SAXException | StiDeserializationException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  void exportStimulsoftReportToFile(StiReport stiReport, File file, Map<String, String> parameters, String type, Boolean isLegacyReport) {
+    try {
+      if (isLegacyReport) {
+        stiReport.getDataSources().forEach(stiDataSource -> {
+          if (stiDataSource instanceof StiODataSource) {
+            StiODataSource stiODataSource = (StiODataSource) stiDataSource;
+            String query = bindParameters(stiODataSource.getQuery(), parameters);
+            stiODataSource.setQuery(query);
+          }
+        });
+      } else {
+        stiReport.getDictionary().getVariables().forEach((c) -> {
+          c.setValue(parameters.get(c.name));
+        });
+      }
+
+      stiReport.Render();
+
+      try (OutputStream outputStream = new FileOutputStream(file)) {
+
+        if (TYPE_HTML.equals(type)) {
+          StiHtmlExportSettings htmlExportSettings = new StiHtmlExportSettings();
+          htmlExportSettings.setEncoding(Charset.defaultCharset());
+          htmlExportSettings.setExportQuality(StiHtmlExportQuality.High);
+          StiExportManager.exportHtml(stiReport, htmlExportSettings, outputStream);
+        } else {
+          // TYPE_PDF
+          StiPdfExportSettings pdfExportSettings = new StiPdfExportSettings();
+          pdfExportSettings.setPdfACompliance(true);
+          pdfExportSettings.setEmbeddedFonts(true);
+          pdfExportSettings.setStandardPdfFonts(true);
+          pdfExportSettings.setCompressed(true);
+          StiExportManager.exportPdf(stiReport, pdfExportSettings, outputStream);
+        }
+      }
+
+    } catch (IOException | StiException e) {
+      log.error("Problems exporting stimulsoft report to pdf file.");
+      throw new RuntimeException(e);
+    } finally {
+      if (stiReport != null && !StiValidationUtil.isNullOrEmpty(stiReport.reportCachePath)) {
+        stiReport.dispose();
+      }
+    }
+  }
 
   void exportStimulsoftReportToFile(String reportName, File file, Map<String, String> parameters, String type) {
-      StiReport stiReport = null;
-      try {
-          try (InputStream inputStream = this.getInputStream(reportName)) {
-              stiReport = StiSerializeManager.deserializeReport(inputStream);
-          }
-
-          stiReport.getDataSources().forEach(stiDataSource -> {
-              if (stiDataSource instanceof StiODataSource) {
-                  StiODataSource stiODataSource = (StiODataSource) stiDataSource;
-                  String query = bindParameters(stiODataSource.getQuery(), parameters);
-                  stiODataSource.setQuery(query);
-              }
-          });
-
-          stiReport.Render();
-
-          try (OutputStream outputStream = new FileOutputStream(file)) {
-
-              if ("pdf".equals(type)) {
-                StiPdfExportSettings pdfExportSettings = new StiPdfExportSettings();
-                pdfExportSettings.setPdfACompliance(true);
-                pdfExportSettings.setEmbeddedFonts(true);
-                pdfExportSettings.setStandardPdfFonts(true);
-                pdfExportSettings.setCompressed(true);
-                StiExportManager.exportPdf(stiReport, pdfExportSettings, outputStream);
-              } else if ("html".equals(type)) {
-                  StiHtmlExportSettings htmlExportSettings = new  StiHtmlExportSettings();
-                  htmlExportSettings.setEncoding(Charset.defaultCharset());
-                  htmlExportSettings.setExportQuality(StiHtmlExportQuality.High);
-                  StiExportManager.exportHtml(stiReport, htmlExportSettings, outputStream);
-              }
-          }
-
-      } catch (IOException | SAXException | StiDeserializationException | StiException e) {
-          log.error("Problems exporting stimulsoft report to pdf file.");
-          throw new RuntimeException(e);
-      } finally {
-          if (stiReport != null) {
-              stiReport.dispose();
-          }
-      }
+    exportStimulsoftReportToFile(reportName, file, parameters, type, true);
   }
 
   void exportStimulsoftReportToPdfFile(String reportName, File file, Map<String, String> parameters) {
-      exportStimulsoftReportToFile(reportName,file,parameters, "pdf");
+    exportStimulsoftReportToFile(reportName, file, parameters, TYPE_PDF);
   }
 
   void exportStimulsoftReportToHtmlFile(String reportName, File file, Map<String, String> parameters) {
-      exportStimulsoftReportToFile(reportName,file,parameters, "html");
+    exportStimulsoftReportToFile(reportName, file, parameters, TYPE_HTML);
   }
 
   private ReportExport getReportExport(ReportFront reportFront) {
@@ -552,34 +567,33 @@ public class ReportService {
     return (JsonObject) new JsonParser().parse(content);
   }
 
-  public String getRenderType(String content)
-  {
-    String type = "PDF";
+  public String getRenderType(String content) {
+    String type = TYPE_PDF.toUpperCase();
     JsonObject json = parseJsonObject(content);
     if (json.has(REPORT_CONFIG)) {
-        type = json.get(REPORT_CONFIG).getAsString();
+      type = json.get(REPORT_CONFIG).getAsString();
     }
 
     return type;
   }
 
-  private File exportReportFile(ReportFront report, String extension){
+  private File exportReportFile(ReportFront report, String extension) {
     File file = null;
     try {
-        file = DownloadREST.getTempFile(UUID.randomUUID().toString() + "." + extension);
-        if (file.createNewFile())
-            log.info("Temporary report file created.");
-        Map<String, String> parameters = new HashMap<>();
-        for (Parameter param : report.getParameters())
-            parameters.put(param.getName(), param.getValue().toString());
-        if ("pdf".equals(extension))
-            exportStimulsoftReportToPdfFile(report.getReportName(), file, parameters);
-        if ("html".equals(extension)) {
-            exportStimulsoftReportToHtmlFile(report.getReportName(), file, parameters);
-        }
+      file = DownloadREST.getTempFile(UUID.randomUUID().toString() + "." + extension);
+      if (file.createNewFile())
+        log.info("Temporary report file created.");
+      Map<String, String> parameters = new HashMap<>();
+      for (Parameter param : report.getParameters())
+        parameters.put(param.getName(), param.getValue().toString());
+      if (TYPE_PDF.equals(extension))
+        exportStimulsoftReportToPdfFile(report.getReportName(), file, parameters);
+      if (TYPE_HTML.equals(extension)) {
+        exportStimulsoftReportToHtmlFile(report.getReportName(), file, parameters);
+      }
     } catch (IOException e) {
-        log.error("Problems to make the temporary report file.");
-        throw new RuntimeException(e);
+      log.error("Problems to make the temporary report file.");
+      throw new RuntimeException(e);
     }
 
     return file;

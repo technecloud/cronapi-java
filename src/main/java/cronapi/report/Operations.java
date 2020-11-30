@@ -1,6 +1,5 @@
 package cronapi.report;
 
-import com.sun.xml.bind.v2.TODO;
 import cronapi.CronapiMetaData;
 import cronapi.CronapiMetaData.CategoryType;
 import cronapi.CronapiMetaData.ObjectType;
@@ -12,9 +11,7 @@ import cronapp.reports.commons.ParameterType;
 import cronapp.reports.commons.ReportFront;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,6 +25,9 @@ import java.util.Map;
 @CronapiMetaData(category = CategoryType.UTIL, categoryTags = {"Report", "Relatório"})
 public class Operations {
 
+  private static final String TYPE_PDF = "pdf";
+  private static final String TYPE_HTML = "html";
+
   /**
    * Construtor
    **/
@@ -38,23 +38,81 @@ public class Operations {
   @CronapiMetaData(type = "function", name = "{{generateReport}}", nameTags = {"generateReport",
       "GerarRelatorio"}, description = "{{generateReportDescription}}", returnType = ObjectType.OBJECT, wizard = "procedures_generatereport_callreturn")
   public static final Var generateReport(@ParamMetaData(blockType = "util_report_list", type = ObjectType.STRING, description = "{{report}}") Var reportName,
-                                         @ParamMetaData(type = ObjectType.STRING, description = "{{path}}") Var path) {
-    return cronapi.report.Operations.generateReport(reportName, path, Var.VAR_NULL);
+                                         @ParamMetaData(type = ObjectType.STRING, description = "{{path}}") Var path) throws Exception {
+    return generateReport(reportName, path, Var.VAR_NULL, Var.VAR_NULL, true);
   }
 
-  public static final Var generateReport(Var reportName, Var path, Var params) {
+  @CronapiMetaData(type = "function", name = "{{generateReportWithParam}}", nameTags = {"generateReport",
+      "GerarRelatorio"}, description = "{{generateReportDescription}}", returnType = ObjectType.OBJECT)
+  public static final Var generateReportWithParam(@ParamMetaData(type = ObjectType.STRING, description = "{{report}}") Var reportName,
+                                                  @ParamMetaData(type = ObjectType.STRING, description = "{{type}}", blockType = "util_dropdown", keys = {
+                                                    TYPE_PDF, TYPE_HTML }, values = {"PDF", "HTML"}) Var type,
+                                                  @ParamMetaData(type = ObjectType.STRING, description = "{{path}}") Var path,
+                                                  @ParamMetaData(type = ObjectType.MAP, description = "{{params}}") Var params) throws Exception {
+    return generateReport(reportName, path, params, type,false);
+  }
+
+  @CronapiMetaData(type = "function", name = "{{generateReportWithJsonContent}}", nameTags = {"generateReport",
+      "GerarRelatorio"}, description = "{{generateReportDescription}}", returnType = ObjectType.OBJECT)
+  public static final Var generateReportWithJsonContent(@ParamMetaData(type = ObjectType.STRING, description = "{{reportContent}}") Var reportContent,
+                                                        @ParamMetaData(type = ObjectType.STRING, description = "{{type}}", blockType = "util_dropdown", keys = {
+                                                          TYPE_PDF, TYPE_HTML }, values = {"PDF", "HTML"}) Var type,
+                                                        @ParamMetaData(type = ObjectType.STRING, description = "{{path}}") Var path,
+                                                        @ParamMetaData(type = ObjectType.MAP, description = "{{params}}") Var params) throws Exception {
+    return generateStimulsoftReport(reportContent, path, params, type);
+  }
+
+  private static Map normalizeParameters(Var params) {
+
+    Map<String, Object> parameters = new HashMap<>();
+
+    if (params.getType() == Var.Type.LIST) {
+      for (Object param : params.getObjectAsList()) {
+        if (!Var.valueOf(param).isEmptyOrNull())
+          parameters.put(Var.valueOf(param).getId(), Var.valueOf(param).getObjectAsString());
+      }
+    } else {
+      for (Object  entry: params.getObjectAsMap().entrySet()) {
+        Map.Entry<String, Var> m = (Map.Entry<String, Var>) entry;
+        parameters.put(m.getKey(), m.getValue().getObject());
+      }
+    }
+
+    return parameters;
+  }
+
+  public static final Var generateStimulsoftReport(Var reportContent, Var path, Var params, Var type) throws Exception {
+
+    if (!reportContent.isEmptyOrNull() && !path.isEmptyOrNull()) {
+
+      String formatType = type.isEmptyOrNull() ? type.getObjectAsString() : TYPE_PDF ;
+      File file = new File(path.getObjectAsString());
+      ReportService service = new ReportService();
+
+      service.exportStimulsoftReportContentToFile(reportContent.getObjectAsString(), file, normalizeParameters(params), formatType, false);
+      return Var.valueOf(file);
+
+    } else {
+      throw new RuntimeException("Error without parameters/content");
+    }
+
+  }
+
+  public static final Var generateReport(Var reportName, Var path, Var params, Var type, Boolean legacy) {
     File file;
     if (!reportName.isNull() || !path.isNull()) {
       ReportService service = new ReportService();
       if (reportName.getObjectAsString().endsWith(".report")) {
         file = new File(path.getObjectAsString());
-        /* TODO Passar parâmetros para o DataSource do StimulSoft
-          (Precisa implementar essa funcionalidade baseado no StimulsoftHelper) */
-        Map<String, String> parameters = new HashMap<>();
-        for (Object param : params.getObjectAsList()) {
-          parameters.put(Var.valueOf(param).getId(), Var.valueOf(param).getObjectAsString());
+
+        Map<String, String> parameters = normalizeParameters(params);
+
+        if (legacy) {
+          service.exportStimulsoftReportToPdfFile(reportName.getObjectAsString(), file, parameters);
+        } else {
+          service.exportStimulsoftReportToFile(reportName.getObjectAsString(), file, parameters, type.getObjectAsString(), false);
         }
-        service.exportStimulsoftReportToPdfFile(reportName.getObjectAsString(), file, parameters);
+
       } else {
         ReportFront reportFront = service.getReport(reportName.getObjectAsString());
         if (params != Var.VAR_NULL && params.size() > 0) {
