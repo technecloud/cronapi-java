@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<persistence version="2.0" xmlns="http://java.sun.com/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd">
+    <persistence-unit name="io.cronapp.testing.northwind" transaction-type="RESOURCE_LOCAL">
+        <provider>org.eclipse.persistence.jpa.PersistenceProvider</provider>
+        <class>io.cronapp.testing.northwind.entity.EmployeeTerritory</class>
+        <class>io.cronapp.testing.northwind.entity.Territory</class>
+        <class>io.cronapp.testing.northwind.entity.Supplier</class>
+        <class>io.cronapp.testing.northwind.entity.Customer</class>
+        <class>io.cronapp.testing.northwind.entity.Employee</class>
+        <class>io.cronapp.testing.northwind.entity.Shipper</class>
+        <class>io.cronapp.testing.northwind.entity.Order</class>
+        <class>io.cronapp.testing.northwind.entity.Product</class>
+        <class>io.cronapp.testing.northwind.entity.OrderDetail</class>
+        <class>io.cronapp.testing.northwind.entity.Category</class>
+        <class>io.cronapp.testing.northwind.entity.Region</class>
+        <properties>
+          <property name="javax.persistence.sql-load-script-source" value="META-INF/persistence.sql" />
+          <property name="javax.persistence.jdbc.driver" value="org.h2.Driver"/>
+          <property name="javax.persistence.jdbc.url" value="jdbc:h2:mem:default"/>
+        </properties>
+    </persistence-unit>
+</persistence>

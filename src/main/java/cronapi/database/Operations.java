@@ -8,7 +8,6 @@ import cronapi.RestClient;
 import cronapi.Var;
 import cronapi.odata.server.JPQLParserUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.persistence.internal.jpa.QueryImpl;
 import org.springframework.data.domain.PageRequest;
 
 import javax.persistence.*;
@@ -176,7 +175,6 @@ public class Operations {
         ds.insert();
         ds.updateFields(params);
         ds.save();
-        ds.flush();
     }
 
     public static void insert(Var entity, Var object) {
@@ -184,7 +182,6 @@ public class Operations {
             DataSource ds = new DataSource(entity.getObjectAsString());
             ds.insert(object.getObjectAsMap());
             Object saved = ds.save();
-            ds.flush();
             object.updateWith(saved);
         }
     }
@@ -360,8 +357,8 @@ public class Operations {
     }
 
     private static Query createNativeQuery(Var entity, Var isModififyQuery, String query) throws Exception {
-        String namespace = entity.getObjectAsString().split("\\.")[0];
         Class<?> domainClass = Class.forName(entity.getObjectAsString());
+        String namespace = domainClass.getPackage().getName().replace(".entity", "");
         if (!isModififyQuery.getObjectAsBoolean()) {
             EntityManagerFactory factory = Persistence.createEntityManagerFactory(namespace);
             EntityManager entityManager = factory.createEntityManager();
@@ -555,4 +552,20 @@ public class Operations {
         return Var.valueOf(mapReturn);
     }
 
+
+  @CronapiMetaData(type = "function", name = "{{setFlushMode}}", nameTags = {"Definir Modo", "Descarga Dados", "Transação", "Set Flush", "Transaction Data", "setFlushMode"},
+      description = "{{setFlushModeDescription}}", returnType = ObjectType.VOID )
+  public static void setFlushMode(
+      @ParamMetaData(type = ObjectType.STRING, description = "{{persistenceUnit}}", blockType = "util_persistence_unit_list")
+          Var persistenceUnit,
+      @ParamMetaData(type = ObjectType.STRING, description = "{{flushMode}}", blockType = "util_dropdown",
+          keys = {"AUTO", "COMMIT"},
+          values = {"{{always}}", "{{onCommit}}"},
+          defaultValue = "AUTO"
+      ) Var type) throws Exception {
+
+    if (!persistenceUnit.equals(Var.VAR_NULL)) {
+      TransactionManager.setFlushMode(persistenceUnit.getObjectAsString(), type.getObjectAsString());
+    }
+  }
 }
