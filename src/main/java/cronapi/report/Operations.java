@@ -1,6 +1,5 @@
 package cronapi.report;
 
-import com.sun.xml.bind.v2.TODO;
 import cronapi.CronapiMetaData;
 import cronapi.CronapiMetaData.CategoryType;
 import cronapi.CronapiMetaData.ObjectType;
@@ -12,9 +11,7 @@ import cronapp.reports.commons.ParameterType;
 import cronapp.reports.commons.ReportFront;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -27,6 +24,9 @@ import java.util.Map;
 
 @CronapiMetaData(category = CategoryType.UTIL, categoryTags = {"Report", "Relatório"})
 public class Operations {
+
+  private static final String TYPE_PDF = "pdf";
+  private static final String TYPE_HTML = "html";
 
   /**
    * Construtor
@@ -46,7 +46,7 @@ public class Operations {
       "GerarRelatorio"}, description = "{{generateReportDescription}}", returnType = ObjectType.OBJECT)
   public static final Var generateReportWithParam(@ParamMetaData(type = ObjectType.STRING, description = "{{report}}") Var reportName,
                                                   @ParamMetaData(type = ObjectType.STRING, description = "{{type}}", blockType = "util_dropdown", keys = {
-                                                      "pdf", "html" }, values = {"PDF", "HTML"}) Var type,
+                                                    TYPE_PDF, TYPE_HTML }, values = {"PDF", "HTML"}) Var type,
                                                   @ParamMetaData(type = ObjectType.STRING, description = "{{path}}") Var path,
                                                   @ParamMetaData(type = ObjectType.MAP, description = "{{params}}") Var params) throws Exception {
     return generateReport(reportName, path, params, type,false);
@@ -56,7 +56,7 @@ public class Operations {
       "GerarRelatorio"}, description = "{{generateReportDescription}}", returnType = ObjectType.OBJECT)
   public static final Var generateReportWithJsonContent(@ParamMetaData(type = ObjectType.STRING, description = "{{reportContent}}") Var reportContent,
                                                         @ParamMetaData(type = ObjectType.STRING, description = "{{type}}", blockType = "util_dropdown", keys = {
-                                                        "pdf", "html" }, values = {"PDF", "HTML"}) Var type,
+                                                          TYPE_PDF, TYPE_HTML }, values = {"PDF", "HTML"}) Var type,
                                                         @ParamMetaData(type = ObjectType.STRING, description = "{{path}}") Var path,
                                                         @ParamMetaData(type = ObjectType.MAP, description = "{{params}}") Var params) throws Exception {
     return generateStimulsoftReport(reportContent, path, params, type);
@@ -85,13 +85,11 @@ public class Operations {
 
     if (!reportContent.isEmptyOrNull() && !path.isEmptyOrNull()) {
 
-      String typeVar = "pdf";
-      if (!type.isEmptyOrNull()) typeVar = type.getObjectAsString();
-
+      String formatType = type.isEmptyOrNull() ? type.getObjectAsString() : TYPE_PDF ;
       File file = new File(path.getObjectAsString());
       ReportService service = new ReportService();
 
-      service.exportStimulsoftReportContentToFile(reportContent.getObjectAsString(), file, normalizeParameters(params), typeVar, false);
+      service.exportStimulsoftReportContentToFile(reportContent.getObjectAsString(), file, normalizeParameters(params), formatType, false);
       return Var.valueOf(file);
 
     } else {
