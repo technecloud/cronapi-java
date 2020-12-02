@@ -74,7 +74,7 @@ public class Operations {
     } else {
       for (Object  entry: params.getObjectAsMap().entrySet()) {
         Map.Entry<String, Var> m = (Map.Entry<String, Var>) entry;
-        parameters.put(m.getKey(), m.getValue().getObject());
+        parameters.put(m.getKey(), m.getValue().getObjectAsString());
       }
     }
 
