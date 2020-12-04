@@ -7,16 +7,20 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 @RestController
 @RequestMapping(value = "/js/blockly.js")
@@ -35,7 +39,7 @@ public class ImportBlocklyREST {
   }
 
   private static boolean isValidApiPath(Path path) {
-    var pathString = path.toString();
+    String pathString = path.toString();
     return API_PATHS.stream().noneMatch(pathString::contains);
   }
 
@@ -46,13 +50,13 @@ public class ImportBlocklyREST {
   private static void fillLanguages(Path folder) throws IOException {
     localesKeys = new ArrayList<>();
     localesRef = new JsonObject();
-    var i18nPath = folder.resolve("i18n");
+    Path i18nPath = folder.resolve("i18n");
 
     if (!Files.exists(i18nPath)) {
       return;
     }
 
-    try (var stream = Files.walk(i18nPath)) {
+    try (Stream<Path> stream = Files.walk(i18nPath)) {
       stream
           .map(path -> path.getFileName().toString())
           .filter(ImportBlocklyREST::isValidLocalePath)
@@ -79,7 +83,7 @@ public class ImportBlocklyREST {
   }
 
   private void fill(Path base, List<String> imports) throws IOException {
-    try (var stream = Files.walk(base)) {
+    try (Stream<Path> stream = Files.walk(base)) {
       stream
           .filter(ImportBlocklyREST::isValidApiPath)
           .forEach(candidate -> addImport(base, candidate, imports));
@@ -90,13 +94,13 @@ public class ImportBlocklyREST {
     String hash = "";
 
     try {
-      var attributes = Files.readAttributes(path, BasicFileAttributes.class);
+      BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
 
       if (attributes.isDirectory()) {
         return;
       }
 
-      var lastModifiedTime = attributes.lastModifiedTime();
+      FileTime lastModifiedTime = attributes.lastModifiedTime();
       if (lastModifiedTime != null) {
         hash = "?" + attributes.lastModifiedTime().toMillis();
       }
@@ -105,10 +109,10 @@ public class ImportBlocklyREST {
     }
 
 
-    var pathString = base.relativize(path).toString();
+    String pathString = base.relativize(path).toString();
 
     if (pathString.endsWith(".blockly.js")) {
-      var js = pathString.replace("\\", "/");
+      String js = pathString.replace("\\", "/");
       if (js.startsWith("/")) {
         js = js.substring(1);
       }
@@ -128,12 +132,17 @@ public class ImportBlocklyREST {
           FileSystem fileSystem = null;
 
           Path folderPath;
-          var servletContext = request.getServletContext();
-          var folderRealPath = servletContext.getRealPath("/");
+          ServletContext servletContext = request.getServletContext();
+          String folderRealPath = servletContext.getRealPath("/");
 
           if (folderRealPath == null) {
-            var folderUri = request.getServletContext().getResource("/").toURI();
-            fileSystem = FileSystems.newFileSystem(folderUri, Map.of("create", "true"));
+            URI folderUri = request.getServletContext().getResource("/").toURI();
+
+            Map<String, String
+                > env = new HashMap<>();
+            env.put("create", "true");
+
+            fileSystem = FileSystems.newFileSystem(folderUri, env);
             folderPath = Paths.get(folderUri);
           } else {
             folderPath = Paths.get(folderRealPath);
