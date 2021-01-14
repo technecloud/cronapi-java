@@ -21,7 +21,6 @@ import cronapi.util.GsonUTCDateAdapter;
 import cronapi.util.StorageService;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.cxf.staxutils.StaxUtils;
 import org.apache.olingo.odata2.core.ep.producer.OlingoJsonSerializer;
 import org.apache.olingo.odata2.jpa.processor.core.access.data.VirtualClassInterface;
