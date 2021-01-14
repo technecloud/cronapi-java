@@ -21,6 +21,7 @@ import cronapi.util.GsonUTCDateAdapter;
 import cronapi.util.StorageService;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.cxf.staxutils.StaxUtils;
 import org.apache.olingo.odata2.core.ep.producer.OlingoJsonSerializer;
 import org.apache.olingo.odata2.jpa.processor.core.access.data.VirtualClassInterface;
@@ -394,6 +395,8 @@ public class Var implements Comparable<Var>, JsonSerializable, OlingoJsonSeriali
       return getObjectAsDateTime();
     } else if (type == Long.class) {
       return getObjectAsLong();
+    } else if (type == Short.class) {
+      return getObjectAsShort();
     } else if (type == Integer.class) {
       return getObjectAsInt();
     } else if (type == Double.class || type == double.class) {
@@ -553,6 +556,44 @@ public class Var implements Comparable<Var>, JsonSerializable, OlingoJsonSeriali
     }
 
     return 0L;
+  }
+
+
+  public Short getObjectAsShort() {
+    switch (getType()) {
+      case STRING:
+        if (isEmptyOrNull()) {
+          return (short) 0;
+        }
+        String value = ((String) getObject()).trim();
+        if (value.equalsIgnoreCase("null")) {
+          return (short) 0;
+        }
+        try {
+          return Double.valueOf(value).shortValue();
+        } catch (Exception e) {
+          if (value.equalsIgnoreCase("true")) {
+            return (short) 1;
+          } else if(value.equalsIgnoreCase("false")) {
+            return (short) 0;
+          }
+        }
+      case INT:
+        return ((Long) getObject()).shortValue();
+      case BOOLEAN:
+        return ((Boolean) getObject()) ? (short) 1 : (short) 0;
+      case DOUBLE:
+        return ((Double) getObject()).shortValue();
+      case DATETIME:
+        return ((Long) ((Calendar) getObject()).getTimeInMillis()).shortValue();
+      case LIST:
+        return ((Integer) ((List) _object).size()).shortValue();
+      default:
+        // has no meaning
+        break;
+    }
+
+    return (short) 0;
   }
 
   public File getObjectAsFile() {
