@@ -46,6 +46,22 @@ class OperationsTest {
     assertThat(Operations.convert(Var.valueOf("false"), Var.valueOf("BOOLEAN")).getObject()).isEqualTo(false);
     assertThat(Operations.convert(Var.valueOf("2012-05-12T04:05:24Z"), Var.valueOf("DATETIME")).getObject()).isEqualTo(testDate1);
 
+    // SHORT ASSERTION
+    assertThat(Operations.convert(Var.valueOf(1), Var.valueOf("SHORT")).getObject()).isEqualTo((short) 1);
+    assertThat(Operations.convert(Var.valueOf(1L), Var.valueOf("SHORT")).getObject()).isEqualTo( (short) 1);
+    assertThat(Operations.convert(Var.valueOf("1"), Var.valueOf("SHORT")).getObject()).isEqualTo( (short) 1);
+    assertThat(Operations.convert(Var.valueOf('1'), Var.valueOf("SHORT")).getObject()).isEqualTo( (short) 1);
+    assertThat(Operations.convert(Var.valueOf(1.0), Var.valueOf("SHORT")).getObject()).isEqualTo( (short) 1);
+    assertThat(Operations.convert(Var.valueOf("1.0"), Var.valueOf("SHORT")).getObject()).isEqualTo( (short) 1);
+    assertThat(Operations.convert(Var.valueOf(true), Var.valueOf("SHORT")).getObject()).isEqualTo( (short) 1);
+    assertThat(Operations.convert(Var.valueOf(false), Var.valueOf("SHORT")).getObject()).isEqualTo( (short) 0);
+    assertThat(Operations.convert(Var.valueOf("true"), Var.valueOf("SHORT")).getObject()).isEqualTo( (short) 1);
+    assertThat(Operations.convert(Var.valueOf(" true "), Var.valueOf("SHORT")).getObject()).isEqualTo( (short) 1);
+    assertThat(Operations.convert(Var.valueOf("false"), Var.valueOf("SHORT")).getObject()).isEqualTo( (short) 0);
+    assertThat(Operations.convert(Var.valueOf(null), Var.valueOf("SHORT")).getObject()).isEqualTo( (short) 0);
+    assertThat(Operations.convert(Var.valueOf("null"), Var.valueOf("SHORT")).getObject()).isEqualTo( (short) 0);
+
+
     assertThat(Operations.convert(Var.valueOf("2012-05-12T04:05:24Z"), Var.valueOf("DATE")).getObject()).isEqualTo(testDate2);
     assertThat(Operations.convert(Var.valueOf("2012-05-12T04:05:24Z"), Var.valueOf("TEXTTIME")).getObject()).isEqualTo("04:05:24");
     assertThat(Operations.convert(Var.valueOf("2012-05-12T04:05:24Z"), Var.valueOf("TIME")).getObject()).isEqualTo(Var.valueOf("1970-01-01T04:05:24Z").getObjectAsDateTime());
