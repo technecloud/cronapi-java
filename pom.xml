@@ -268,6 +268,11 @@
       <artifactId>stimulsoft-reports-report</artifactId>
       <version>2020.3.2</version>
     </dependency>
+    <dependency>
+      <groupId>org.freemarker</groupId>
+      <artifactId>freemarker</artifactId>
+      <version>2.3.28</version>
+    </dependency>
     <!-- Test Dependencies -->
     <dependency>
       <groupId>org.jvnet.mock-javamail</groupId>

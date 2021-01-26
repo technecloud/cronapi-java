@@ -11,11 +11,8 @@ import cronapi.database.JPQLConverter;
 import cronapi.i18n.Messages;
 import cronapi.rest.security.CronappSecurity;
 import cronapi.util.Operations;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+
+import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -25,7 +22,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import freemarker.template.Configuration;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.odata2.api.edm.EdmEntityType;
 import org.apache.olingo.odata2.api.edm.EdmProperty;
 import org.apache.olingo.odata2.api.uri.UriInfo;
@@ -41,6 +43,8 @@ public class QueryManager {
   private static File fromFile = null;
 
   public static boolean DISABLE_AUTH = false;
+
+  private static Configuration freemarkerConfiguration = new Configuration(Configuration.VERSION_2_3_28);
 
   static {
     JSON = loadJSON();
@@ -367,6 +371,20 @@ public class QueryManager {
     }
 
     return Var.VAR_NULL;
+  }
+
+  public static boolean hasParameterValue(JsonObject customQuery, String param) {
+    JsonArray paramValues = customQuery.getAsJsonArray("queryParamsValues");
+    if (paramValues != null) {
+      for (int x = 0; x < paramValues.size(); x++) {
+        JsonElement prv = paramValues.get(x);
+        if (param.equals(prv.getAsJsonObject().get("fieldName").getAsString())) {
+          JsonElement fieldValue = prv.getAsJsonObject().get("fieldValue");
+          return fieldValue != null && !fieldValue.isJsonNull() && !fieldValue.getAsJsonPrimitive().getAsString().isBlank();
+        }
+      }
+    }
+    return false;
   }
 
   public static Var getParameterValue(JsonObject customQuery, String param, Map<String, Var> customValues) {
@@ -940,7 +958,10 @@ public class QueryManager {
               String key = element.getAsJsonPrimitive().getAsString().substring(5);
               return Var.valueOf(ds).getField(key);
             }
-            if (customValues != null && customValues.containsKey(element.getAsJsonPrimitive().getAsString())) {
+            if (element.getAsJsonPrimitive().getAsString().startsWith("expression:")) {
+              String template = StringUtils.removeStart(element.getAsJsonPrimitive().getAsString(), "expression:");
+              value = processTemplate(template, Var.valueOf(ds).getObjectAsMap());
+            } else if (customValues != null && customValues.containsKey(element.getAsJsonPrimitive().getAsString())) {
               value = customValues.get(element.getAsJsonPrimitive().getAsString());
             } else {
               value = Var.eval(element.getAsJsonPrimitive().getAsString());
@@ -973,6 +994,22 @@ public class QueryManager {
     }
 
     return value;
+  }
+
+  private static Var processTemplate(String templateStr, Object data) {
+    Map<String, String> applicationData = new HashMap<>();
+    applicationData.put("id", AppConfig.guid());
+    Map<String, Object> dataModel = new HashMap<>();
+    dataModel.put("application", applicationData);
+    dataModel.put("data", data);
+    try {
+      Template template = new Template("expression", new StringReader(templateStr), freemarkerConfiguration);
+      Writer writer = new StringWriter();
+      template.process(dataModel, writer);
+      return Var.valueOf(writer.toString());
+    } catch (IOException | TemplateException e) {
+      throw new CronapiException("Error processing template: " + templateStr);
+    }
   }
 
   public static Var parseExpressionValue(JsonElement element) {
