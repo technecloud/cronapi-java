@@ -81,7 +81,7 @@ public class Operations {
     return parameters;
   }
 
-  public static final Var generateStimulsoftReport(Var reportContent, Var path, Var params, Var type) throws Exception {
+  private static final Var generateStimulsoftReport(Var reportContent, Var path, Var params, Var type) throws Exception {
 
     if (!reportContent.isEmptyOrNull() && !path.isEmptyOrNull()) {
 
@@ -98,7 +98,11 @@ public class Operations {
 
   }
 
-  public static final Var generateReport(Var reportName, Var path, Var params, Var type, Boolean legacy) {
+  public static final Var generateReport(Var reportName, Var path, Var params) {
+    return generateReport(reportName, path, params, new Var(TYPE_PDF), false);
+  }
+
+  private static final Var generateReport(Var reportName, Var path, Var params, Var type, Boolean legacy) {
     File file;
     if (!reportName.isNull() || !path.isNull()) {
       ReportService service = new ReportService();
