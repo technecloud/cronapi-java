@@ -502,7 +502,16 @@ public class ReportService {
           pdfExportSettings.setEmbeddedFonts(true);
           pdfExportSettings.setStandardPdfFonts(true);
           pdfExportSettings.setCompressed(true);
-          StiExportManager.exportPdf(stiReport, pdfExportSettings, outputStream);
+          try {
+            StiExportManager.exportPdf(stiReport, pdfExportSettings, outputStream);
+          } catch (Exception e) {
+            // Due to Font issues sometimes it is necessary to disable
+            // PdfACompliance and EmbeddedFonts in order to not run the renderFontTable -> ReduceFontSize methods
+            pdfExportSettings.setPdfACompliance(false);
+            pdfExportSettings.setEmbeddedFonts(false);
+            // Retry to export the PDF without the PdfACompliance
+            StiExportManager.exportPdf(stiReport, pdfExportSettings, outputStream);
+          }
         }
       }
 
