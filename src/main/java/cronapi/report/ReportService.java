@@ -472,19 +472,17 @@ public class ReportService {
 
   void exportStimulsoftReportToFile(StiReport stiReport, File file, Map<String, String> parameters, String type, Boolean isLegacyReport) {
     try {
-      if (isLegacyReport) {
-        stiReport.getDataSources().forEach(stiDataSource -> {
-          if (stiDataSource instanceof StiODataSource) {
-            StiODataSource stiODataSource = (StiODataSource) stiDataSource;
-            String query = bindParameters(stiODataSource.getQuery(), parameters);
-            stiODataSource.setQuery(query);
-          }
-        });
-      } else {
-        stiReport.getDictionary().getVariables().forEach((c) -> {
-          c.setValue(parameters.get(c.name));
-        });
-      }
+      stiReport.getDataSources().forEach(stiDataSource -> {
+        if (stiDataSource instanceof StiODataSource) {
+          StiODataSource stiODataSource = (StiODataSource) stiDataSource;
+          String query = bindParameters(stiODataSource.getQuery(), parameters);
+          stiODataSource.setQuery(query);
+        }
+      });
+
+      stiReport.getDictionary().getVariables().forEach((c) -> {
+        c.setValue(parameters.get(c.name));
+      });
 
       stiReport.Render();
 
