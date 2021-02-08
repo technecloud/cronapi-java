@@ -472,7 +472,7 @@ public class ReportService {
 
   void exportStimulsoftReportToFile(StiReport stiReport, File file, Map<String, String> parameters, String type, Boolean isLegacyReport) {
     try {
-      if (isLegacyReport) {
+      if (stiReport.getDataSources() != null) {
         stiReport.getDataSources().forEach(stiDataSource -> {
           if (stiDataSource instanceof StiODataSource) {
             StiODataSource stiODataSource = (StiODataSource) stiDataSource;
@@ -480,11 +480,11 @@ public class ReportService {
             stiODataSource.setQuery(query);
           }
         });
-      } else {
-        stiReport.getDictionary().getVariables().forEach((c) -> {
-          c.setValue(parameters.get(c.name));
-        });
       }
+
+      stiReport.getDictionary().getVariables().forEach((c) -> {
+        c.setValue(parameters.get(c.name));
+      });
 
       stiReport.Render();
 
