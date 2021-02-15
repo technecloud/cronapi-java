@@ -50,11 +50,37 @@ public class QueryManager {
     DEFAULT_AUTHORITIES.add("authenticated");
   }
 
+  private static JsonObject loadJSONFromCustomQuery() {
+    if (fromFolder != null) {
+      try (InputStream stream = new FileInputStream(fromFolder)) {
+        try (InputStreamReader reader = new InputStreamReader(stream)) {
+          JsonElement jsonElement = new JsonParser().parse(reader);
+          return jsonElement.getAsJsonObject();
+        }
+      } catch (Exception e) {
+        return new JsonObject();
+      }
+    } else {
+      ClassLoader classLoader = QueryManager.class.getClassLoader();
+      try (InputStream stream = classLoader.getResourceAsStream("META-INF/customQuery.json")) {
+        try (InputStreamReader reader = new InputStreamReader(stream)) {
+          JsonElement jsonElement = new JsonParser().parse(reader);
+          return jsonElement.getAsJsonObject();
+        }
+      } catch (Exception e) {
+        return new JsonObject();
+      }
+    }
+  }
+
   private static JsonObject loadJSON() {
     JsonObject result = new JsonObject();
     try {
       if (fromFolder != null) {
         if (fromFolder.isFile()) {
+          if (fromFolder.exists()) {
+            return loadJSONFromCustomQuery();
+          }
           fromFolder = new File(fromFolder.getParentFile(), "datasources");
         }
         File[] files = fromFolder.listFiles();
@@ -73,6 +99,9 @@ public class QueryManager {
         }
       } else {
         ClassLoader classLoader = QueryManager.class.getClassLoader();
+        if (classLoader.getResourceAsStream("META-INF/customQuery.json") != null) {
+          return loadJSONFromCustomQuery();
+        }
         Reflections reflections = new Reflections("META-INF.datasources", new ResourcesScanner());
         Set<String> files = reflections.getResources(DATASOURCE_PATTERN);
         for (String file : files) {
