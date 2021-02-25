@@ -49,7 +49,6 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Class database manipulation, responsible for querying, inserting,
@@ -269,9 +268,10 @@ public class DataSource implements JsonSerializable {
         o++;
       }
 
-      Map<String, Var> paramsValues = new LinkedHashMap<>();
+      Map<String, Var> paramsValues = null;
 
       if (namedParams) {
+        paramsValues = new LinkedHashMap<>();
         if (useUrlParams) {
           for (String key : parsedParams) {
             paramsValues.put(key, Var.valueOf(RestClient.getRestClient().getParameter(key)));
@@ -279,15 +279,6 @@ public class DataSource implements JsonSerializable {
         } else {
           for (Var p : params) {
             paramsValues.put(p.getId(), p);
-          }
-        }
-      } else {
-        var i = 0;
-        for (String p : parsedParams.stream().distinct().collect(Collectors.toList())) {
-          if (i > params.length - 1) {
-            break;
-          } else {
-            paramsValues.put(p, params[i]);
           }
         }
       }
@@ -333,7 +324,10 @@ public class DataSource implements JsonSerializable {
           String param = "param" + i;
           String realParamName = parsedParams.get(i);
           int idx = argsNames.indexOf(param);
-          Var p = paramsValues.get(realParamName);
+          Var p = null;
+          if (i <= params.length - 1) {
+            p = params[i];
+          }
           if (customQuery != null && QueryManager.hasParameterValue(customQuery, realParamName)) {
             query.setParameter(param, QueryManager.getParameterValue(customQuery, realParamName, new HashMap<>()).getObject(argsTypes.get(idx)));
           } else if (p != null) {
