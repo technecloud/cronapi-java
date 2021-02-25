@@ -62,6 +62,8 @@ public class QueryManager {
 
   private static Configuration freemarkerConfiguration = new Configuration(Configuration.VERSION_2_3_28);
 
+  public static ThreadLocal<JsonObject> JSON_CACHE = new ThreadLocal<>();
+
   static {
     JSON = loadJSON();
     DEFAULT_AUTHORITIES = new JsonArray();
@@ -149,7 +151,12 @@ public class QueryManager {
 
   public static JsonObject getJSON() {
     if (Operations.IS_DEBUG) {
-      return loadJSON();
+      JsonObject json = JSON_CACHE.get();
+      if (json == null) {
+        json = loadJSON();
+        JSON_CACHE.set(json);
+      }
+      return json;
     } else {
       return JSON;
     }
