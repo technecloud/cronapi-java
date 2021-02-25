@@ -48,6 +48,8 @@ import java.util.regex.Pattern;
 
 public class QueryManager {
 
+  public static ThreadLocal<JsonObject> JSON_CACHE = new ThreadLocal<>();
+
   private static final Logger log = LoggerFactory.getLogger(QueryManager.class);
 
   private static final Pattern DATASOURCE_PATTERN = Pattern.compile(".*\\.datasource\\.json");
@@ -61,8 +63,6 @@ public class QueryManager {
   public static boolean DISABLE_AUTH = false;
 
   private static Configuration freemarkerConfiguration = new Configuration(Configuration.VERSION_2_3_28);
-
-  public static ThreadLocal<JsonObject> JSON_CACHE = new ThreadLocal<>();
 
   static {
     JSON = loadJSON();
