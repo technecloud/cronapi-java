@@ -32,7 +32,6 @@ import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
-import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.security.Key;
@@ -468,17 +467,15 @@ public class Operations {
   private static final String APPLICATION_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
   private static final String APPLICATION_JSON = "application/json";
 
-  private static boolean isMethodWithBodyNonDefault(Var postData, Var params, String methodAsString) {
-    return !postData.isNull() && params.isNull() && (HttpDelete.METHOD_NAME.equalsIgnoreCase(methodAsString)
-            || HttpGet.METHOD_NAME.equalsIgnoreCase(methodAsString));
-  }
-
   private static final Var getContentFromURL(Var method, Var contentType, Var address, Var params,
                                              Var cookieContainer, Var returnType, Var postData) throws Exception {
 
     String methodAsString = method.getObjectAsString();
     HttpClient httpClient = HttpClients.createSystem();
     final HttpRequestBase httpMethod;
+    Var toReturn;
+    HttpResponse httpResponse;
+    Map<String, String> responseMap = new HashMap<>();
 
     if (HttpPost.METHOD_NAME.equalsIgnoreCase(methodAsString)) {
       httpMethod = new HttpPost(address.getObjectAsString());
@@ -498,7 +495,7 @@ public class Operations {
       httpMethod = new HttpGet(address.getObjectAsString());
     }
 
-
+    // Add Headers
     if (!cookieContainer.isNull()) {
       Map<?, ?> headerObject = cookieContainer.getObjectAsMap();
       headerObject.entrySet().stream().forEach((entry) -> {
@@ -507,100 +504,56 @@ public class Operations {
       });
     }
 
-    Var toReturn;
-    HttpResponse httpResponse;
-    Map<String, String> responseMap = new HashMap<String, String>();
-
-    if (isMethodWithBodyNonDefault(postData, params, methodAsString)) {
-      StringEntity postDataList = new StringEntity(postData.getObjectAsString(), Charset.forName(cronapi.CronapiConfigurator.ENCODING));
-      postDataList.setContentType(contentType.getObjectAsString());
-
-      HttpWithBody httpMethodWidthBody;
-      httpMethodWidthBody = HttpDelete.METHOD_NAME.equalsIgnoreCase(methodAsString) ? new HttpDeleteWithBody(httpMethod) : new HttpGetWithBody(httpMethod);
-      httpMethodWidthBody.setEntity(postDataList);
-      httpResponse = httpClient.execute(httpMethodWidthBody);
-    } else if (!params.isNull() && postData.isNull()) {
-      if (httpMethod instanceof HttpEntityEnclosingRequestBase) {
-
-        HttpEntityEnclosingRequestBase httpEntityEnclosingRequestBase = (HttpEntityEnclosingRequestBase) httpMethod;
-
-        if (params.getObject() instanceof Map && APPLICATION_X_WWW_FORM_URLENCODED.equals(contentType.getObjectAsString())) {
-
-          Map<?, ?> mapObject = params.getObjectAsMap();
-          List<NameValuePair> paramsData = new LinkedList<>();
-          mapObject.entrySet().stream().forEach((entry) -> {
-            paramsData.add(new BasicNameValuePair(Var.valueOf(entry.getKey()).getObjectAsString(),
-                Var.valueOf(entry.getValue()).getObjectAsString()));
-          });
-
-          httpEntityEnclosingRequestBase.setEntity(new UrlEncodedFormEntity(paramsData, cronapi.CronapiConfigurator.ENCODING));
-        } else {
-
-          StringEntity paramsData = new StringEntity(params.getObjectAsString(),
-              Charset.forName(cronapi.CronapiConfigurator.ENCODING));
-          paramsData.setContentType(contentType.getObjectAsString());
-          httpEntityEnclosingRequestBase.setEntity(paramsData);
+    // Add Params
+    if (!params.isNull()) {
+      var mapParams = params.getObjectAsMap();
+      var paramsData = new LinkedList<NameValuePair>();
+      mapParams.forEach((key, value) -> {
+        var obj = String.valueOf(value);
+        if (value instanceof Var) {
+          obj = ((Var) value).getObjectAsString();
         }
-      } else {
+        var item = new BasicNameValuePair(String.valueOf(key), obj);
+        paramsData.add(item);
 
-        List<NameValuePair> paramsData = new LinkedList<>();
-
-        Map<?, ?> mapObject = params.getObjectAsMap();
-        mapObject.entrySet().stream().forEach((entry) -> {
-          paramsData.add(new BasicNameValuePair(Var.valueOf(entry.getKey()).getObjectAsString(),
-              Var.valueOf(entry.getValue()).getObjectAsString()));
-        });
-        URI uri = httpMethod.getURI();
-        if (paramsData != null && !paramsData.isEmpty()) {
-          uri = new URIBuilder(httpMethod.getURI()).addParameters(paramsData).build();
-        }
-        httpMethod.setURI(uri);
+        httpMethod.getParams().setParameter(URLEncoder.encode(String.valueOf(key)), obj);
+      });
+      var uri = httpMethod.getURI();
+      if (!paramsData.isEmpty()) {
+        uri = new URIBuilder(httpMethod.getURI()).addParameters(paramsData).build();
       }
-      httpResponse = httpClient.execute(httpMethod);
-    } else {
-      List<NameValuePair> paramsData = new LinkedList<>();
-      List<NameValuePair> postDataList = new LinkedList<>();
-      List<NameValuePair> bothDataList = new LinkedList<>();
-      if (!params.isNull() && params.getObject() instanceof Map) {
-        Map<?, ?> mapObject = params.getObjectAsMap();
-        mapObject.entrySet().stream().forEach((entry) -> {
-          paramsData.add(new BasicNameValuePair(Var.valueOf(entry.getKey()).getObjectAsString(),
-              Var.valueOf(entry.getValue()).getObjectAsString()));
-        });
-      }
-      if (!postData.isNull() && postData.getObject() instanceof Map) {
-        Map<?, ?> mapObject = postData.getObjectAsMap();
-        mapObject.entrySet().stream().forEach((entry) -> {
-          postDataList.add(new BasicNameValuePair(Var.valueOf(entry.getKey()).getObjectAsString(),
-              Var.valueOf(entry.getValue()).getObjectAsString()));
-        });
-      }
-      bothDataList.addAll(paramsData);
-      bothDataList.addAll(postDataList);
+      httpMethod.setURI(uri);
+    }
 
-      if (httpMethod instanceof HttpEntityEnclosingRequestBase) {
+    // Add Body
+    if (!postData.isNull()) {
+      String ct = contentType.getObjectAsString();
+      var httpMethodWidthBody = new HttpWithBody(httpMethod, httpMethod.getMethod());
 
-        HttpEntityEnclosingRequestBase httpEntityEnclosingRequestBase = (HttpEntityEnclosingRequestBase) httpMethod;
-
-        if (APPLICATION_X_WWW_FORM_URLENCODED.equals(contentType.getObjectAsString())) {
-          httpEntityEnclosingRequestBase.setEntity(new UrlEncodedFormEntity(bothDataList, cronapi.CronapiConfigurator.ENCODING));
-        } else {
-          JsonObject fusionObject = new JsonObject();
-          for (NameValuePair nameValuePair : bothDataList) {
-            fusionObject.add(nameValuePair.getName(), nameValuePair.getValue());
+      if (APPLICATION_X_WWW_FORM_URLENCODED.equals(ct)) {
+        var mapObject = postData.getObjectAsMap();
+        var paramsData = new LinkedList<NameValuePair>();
+        mapObject.forEach((key, value) -> {
+          var obj = String.valueOf(value);
+          if (value instanceof Var) {
+            obj = ((Var) value).getObjectAsString();
           }
-          StringEntity postToData = new StringEntity(fusionObject.toString(),
-              Charset.forName(cronapi.CronapiConfigurator.ENCODING));
-          postToData.setContentType(contentType.getObjectAsString());
-          httpEntityEnclosingRequestBase.setEntity(postToData);
-        }
+          var item = new BasicNameValuePair(String.valueOf(key), obj);
+          paramsData.add(item);
+        });
+
+        var urlEncodedFormEntity = new UrlEncodedFormEntity(paramsData, cronapi.CronapiConfigurator.ENCODING);
+        urlEncodedFormEntity.setContentType(ct);
+        httpMethodWidthBody.setEntity(urlEncodedFormEntity);
+
       } else {
-        URI uri = httpMethod.getURI();
-        if (bothDataList != null && !bothDataList.isEmpty()) {
-          uri = new URIBuilder(httpMethod.getURI()).addParameters(bothDataList).build();
-        }
-        httpMethod.setURI(uri);
+        var stringEntity = new StringEntity(postData.getObjectAsString(), Charset.forName(cronapi.CronapiConfigurator.ENCODING));
+        stringEntity.setContentType(ct);
+        httpMethodWidthBody.setEntity(stringEntity);
       }
+
+      httpResponse = httpClient.execute(httpMethodWidthBody);
+    } else {
       httpResponse = httpClient.execute(httpMethod);
     }
 
@@ -628,7 +581,6 @@ public class Operations {
     }
     httpMethod.completed();
     return toReturn;
-
   }
 
   @CronapiMetaData(type = "function", name = "{{getFromSession}}", nameTags = {
