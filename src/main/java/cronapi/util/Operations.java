@@ -32,6 +32,7 @@ import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.security.Key;
@@ -506,19 +507,19 @@ public class Operations {
 
     // Add Params
     if (!params.isNull()) {
-      var mapParams = params.getObjectAsMap();
-      var paramsData = new LinkedList<NameValuePair>();
+      Map mapParams = params.getObjectAsMap();
+      LinkedList paramsData = new LinkedList<NameValuePair>();
       mapParams.forEach((key, value) -> {
-        var obj = String.valueOf(value);
+        String obj = String.valueOf(value);
         if (value instanceof Var) {
           obj = ((Var) value).getObjectAsString();
         }
-        var item = new BasicNameValuePair(String.valueOf(key), obj);
+        BasicNameValuePair item = new BasicNameValuePair(String.valueOf(key), obj);
         paramsData.add(item);
 
         httpMethod.getParams().setParameter(URLEncoder.encode(String.valueOf(key)), obj);
       });
-      var uri = httpMethod.getURI();
+      URI uri = httpMethod.getURI();
       if (!paramsData.isEmpty()) {
         uri = new URIBuilder(httpMethod.getURI()).addParameters(paramsData).build();
       }
@@ -528,26 +529,26 @@ public class Operations {
     // Add Body
     if (!postData.isNull()) {
       String ct = contentType.getObjectAsString();
-      var httpMethodWidthBody = new HttpWithBody(httpMethod, httpMethod.getMethod());
+      HttpWithBody httpMethodWidthBody = new HttpWithBody(httpMethod, httpMethod.getMethod());
 
       if (APPLICATION_X_WWW_FORM_URLENCODED.equals(ct)) {
-        var mapObject = postData.getObjectAsMap();
-        var paramsData = new LinkedList<NameValuePair>();
+        Map mapObject = postData.getObjectAsMap();
+        LinkedList paramsData = new LinkedList<NameValuePair>();
         mapObject.forEach((key, value) -> {
-          var obj = String.valueOf(value);
+          String obj = String.valueOf(value);
           if (value instanceof Var) {
             obj = ((Var) value).getObjectAsString();
           }
-          var item = new BasicNameValuePair(String.valueOf(key), obj);
+          BasicNameValuePair item = new BasicNameValuePair(String.valueOf(key), obj);
           paramsData.add(item);
         });
 
-        var urlEncodedFormEntity = new UrlEncodedFormEntity(paramsData, cronapi.CronapiConfigurator.ENCODING);
+        UrlEncodedFormEntity urlEncodedFormEntity = new UrlEncodedFormEntity(paramsData, cronapi.CronapiConfigurator.ENCODING);
         urlEncodedFormEntity.setContentType(ct);
         httpMethodWidthBody.setEntity(urlEncodedFormEntity);
 
       } else {
-        var stringEntity = new StringEntity(postData.getObjectAsString(), Charset.forName(cronapi.CronapiConfigurator.ENCODING));
+        StringEntity stringEntity = new StringEntity(postData.getObjectAsString(), Charset.forName(cronapi.CronapiConfigurator.ENCODING));
         stringEntity.setContentType(ct);
         httpMethodWidthBody.setEntity(stringEntity);
       }
