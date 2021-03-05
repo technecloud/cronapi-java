@@ -62,6 +62,7 @@ public class ReportService {
   public static final String SINGLE_QUOTE = "'";
   private static final String TYPE_PDF = "pdf";
   private static final String TYPE_HTML = "html";
+  private static HashMap<String, String> charCannotBeEscaped;
 
   static {
     com.stimulsoft.base.licenses.StiLicense.setKey("" +
@@ -78,6 +79,9 @@ public class ReportService {
 
     Services.getDataSource().add(StiODataSource.class);
     Services.getDataBases().add(StiODataDatabase.class);
+    charCannotBeEscaped = new HashMap<String, String>() {{
+      put("/", "|slash|");
+    }};
   }
 
   private static final String REPORT_CONFIG = "reportConfig";
@@ -261,11 +265,23 @@ public class ReportService {
   }
 
   private static String getIfIsDate(String value) {
+    if (StringUtils.isEmpty(value) || value.length() < 4)
+      return null;
+
     Calendar c = Utils.toGenericCalendar(value);
     if (c != null) {
       return "datetimeoffset'" + Utils.getISODateFormat().format((c).getTime()) + "'";
     }
     return null;
+  }
+
+  public static String repCharCannotBeEscaped(String value, boolean isUndo) {
+    for (Map.Entry<String, String> entry : charCannotBeEscaped.entrySet()) {
+      String toFind = isUndo ? entry.getValue() : entry.getKey();
+      String toReplace = isUndo ? entry.getKey() : entry.getValue();
+      value = value.replace(toFind, toReplace);
+    }
+    return value;
   }
 
   private static String parseParameter(String s, Map<String, String> values) {
@@ -277,7 +293,9 @@ public class ReportService {
         String date = getIfIsDate(value);
         if (StringUtils.isNotEmpty(date))
           return date;
-        return "'" + StringEscapeUtils.escapeEcmaScript(value) + "'";
+
+        value = repCharCannotBeEscaped(StringEscapeUtils.escapeEcmaScript(repCharCannotBeEscaped(value, false)),true);
+        return "'" + value + "'";
       }
 
       return "''";
