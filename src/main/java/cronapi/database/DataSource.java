@@ -308,14 +308,12 @@ public class DataSource implements JsonSerializable {
           String paramName = "param" + i;
           String realParamName = parsedParams.get(i);
 
+          int idx = argsNames.indexOf(paramName);
           Var value = paramsValues.get(realParamName);
-          if (value != null) {
-            int idx = argsNames.indexOf(paramName);
-            if (customQuery != null && QueryManager.hasParameterValue(customQuery, realParamName)) {
-              query.setParameter(paramName, QueryManager.getParameterValue(customQuery, realParamName, new HashMap<>()).getObject(argsTypes.get(idx)));
-            } else{
-              query.setParameter(paramName, value.getObject(argsTypes.get(idx)));
-            }
+          if (customQuery != null && QueryManager.hasParameterValue(customQuery, realParamName)) {
+            query.setParameter(paramName, QueryManager.getParameterValue(customQuery, realParamName, new HashMap<>()).getObject(argsTypes.get(idx)));
+          } else if (value != null) {
+            query.setParameter(paramName, value.getObject(argsTypes.get(idx)));
           }
         }
       } else {
