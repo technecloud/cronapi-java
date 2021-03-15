@@ -62,7 +62,7 @@ public class Operations {
 
         if(Var.valueOf(flags).isNull()){
 
-            return Pattern.compile(org.apache.commons.lang3.StringEscapeUtils.unescapeJava( regex.getObjectAsString()));
+            return Pattern.compile(regex.getObjectAsString());
 
         }else{
 
@@ -72,7 +72,8 @@ public class Operations {
                 throw new Exception(Messages.getString("flagRegexError"));
 
 
-            return Pattern.compile(org.apache.commons.lang3.StringEscapeUtils.unescapeJava(regex.getObjectAsString()), patternFlag);
+            return Pattern.compile(regex.getObjectAsString(), patternFlag);
+
         }
     }
 
