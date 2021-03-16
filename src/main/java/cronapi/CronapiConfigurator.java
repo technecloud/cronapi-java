@@ -1,34 +1,27 @@
 package cronapi;
 
-import java.io.IOException;
-import java.text.FieldPosition;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
-
-import javax.servlet.MultipartConfigElement;
-import javax.servlet.http.HttpServletRequest;
-
-import cronapi.serialization.CronappModule;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.boot.web.servlet.MultipartConfigFactory;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.support.ConversionServiceFactoryBean;
-import org.springframework.core.convert.ConversionService;
-import org.springframework.core.convert.converter.Converter;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.fasterxml.jackson.databind.ser.std.CalendarSerializer;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 import com.fasterxml.jackson.databind.util.ISO8601Utils;
 import com.google.gson.JsonElement;
+import cronapi.serialization.CronappModule;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.boot.web.servlet.MultipartConfigFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import org.springframework.util.unit.DataSize;
+
+import javax.servlet.MultipartConfigElement;
+import java.io.IOException;
+import java.text.FieldPosition;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Optional;
 
 @Configuration
 public class CronapiConfigurator {
@@ -88,10 +81,10 @@ public class CronapiConfigurator {
 //  }
 
   @Bean
-  public MultipartConfigElement multipartConfigElement() {
+  public MultipartConfigElement multipartConfigElement(@Value("${cronapp.request.maxFileSize:#{null}}") Optional<Long> maxFileSize, @Value("${cronapp.request.maxRequestSize:#{null}}") Optional<Long> maxRequestSize) {
     MultipartConfigFactory factory = new MultipartConfigFactory();
-    factory.setMaxFileSize("102400MB");
-    factory.setMaxRequestSize("102400MB");
+    factory.setMaxFileSize(DataSize.ofBytes(maxFileSize.orElse(107374182400L)));
+    factory.setMaxRequestSize(DataSize.ofBytes(maxRequestSize.orElse(107374182400L)));
     return factory.createMultipartConfig();
   }
 }
