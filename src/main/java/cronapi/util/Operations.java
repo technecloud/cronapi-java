@@ -324,9 +324,8 @@ public class Operations {
         int j = 0;
         for (Parameter parameter: methodToCall.getParameters()) {
           ParamMetaData annotation = (ParamMetaData) ReflectionUtils.getAnnotation(parameter, "cronapi.ParamMetaData");
-          String name = annotation.description();
           for (Var param: params) {
-            if (param.getId().equals(name)) {
+            if (param.getId().equals(annotation.description()) || param.getId().equals(annotation.id())) {
               callParams[j] = param;
               break;
             }

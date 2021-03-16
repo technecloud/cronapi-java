@@ -148,6 +148,9 @@ public class Var implements Comparable<Var>, JsonSerializable, OlingoJsonSeriali
    */
   public Var(String id, Object object) {
     this.id = id;
+    if (object instanceof Var) {
+      object = ((Var) object).getObject();
+    }
     setObject(object);
   }
 
