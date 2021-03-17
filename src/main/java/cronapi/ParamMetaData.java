@@ -19,5 +19,7 @@ public @interface ParamMetaData {
   
   String[] keys() default "";
   String[] values() default "";
+
+  String id() default "";
   
 }

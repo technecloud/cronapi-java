@@ -319,11 +319,7 @@ public class QueryManager {
             .valueOf(event.get("blocklyClass").getAsString() + ":" + event.get("blocklyMethod")
                 .getAsString());
         try {
-          if (query.getAsJsonArray("queryParamsValues") != null && query.getAsJsonArray("queryParamsValues").size() > 0) {
-            return callBlocly(event, name, ds, keys, entityName, eventName);
-          } else {
-            return Operations.callBlockly(name, Var.valueOf(ds));
-          }
+          return callBlocly(event, name, ds, keys, entityName, eventName);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
@@ -348,8 +344,11 @@ public class QueryManager {
           }
           customValues.put("entityName", Var.valueOf(entityName));
           customValues.put("eventName", Var.valueOf(eventName));
-
-          params[i] = parseExpressionValue(ds, param.get("value"), customValues);
+          String id = null;
+          if (!isNull(param.get("id"))) {
+            id = param.get("id").getAsString();
+          }
+          params[i] = parseExpressionValue(id, ds, param.get("value"), customValues);
 
         }
 
@@ -378,7 +377,11 @@ public class QueryManager {
           for (int i = 0; i < bloclyParams.size(); i++) {
             JsonObject param = bloclyParams.get(i).getAsJsonObject();
             customValues.put("eventName", Var.valueOf(eventName));
-            params[i] = parseExpressionValue(null, param.get("value"), customValues);
+            String id = null;
+            if (!isNull(param.get("id"))) {
+              id = param.get("id").getAsString();
+            }
+            params[i] = parseExpressionValue(id, null, param.get("value"), customValues);
           }
         }
 
@@ -485,7 +488,7 @@ public class QueryManager {
             return Var.VAR_NULL;
           }
 
-          return parseExpressionValue(null, ((JsonObject) prv).get("fieldValue"), customValues);
+          return parseExpressionValue(null, null, ((JsonObject) prv).get("fieldValue"), customValues);
         }
       }
     }
@@ -1030,7 +1033,7 @@ public class QueryManager {
     return result;
   }
 
-  public static Var parseExpressionValue(Object ds, JsonElement element, Map<String, Var> customValues) {
+  public static Var parseExpressionValue(String id, Object ds, JsonElement element, Map<String, Var> customValues) {
     Var value = Var.VAR_NULL;
     if (!isNull(element)) {
       if (element.isJsonPrimitive()) {
@@ -1079,7 +1082,7 @@ public class QueryManager {
       }
     }
 
-    return value;
+    return id != null ? Var.valueOf(id, value) : value;
   }
 
   private static Var processTemplate(String templateStr, Object data) {
@@ -1099,7 +1102,7 @@ public class QueryManager {
   }
 
   public static Var parseExpressionValue(JsonElement element) {
-    return parseExpressionValue(null, element, null);
+    return parseExpressionValue(null, null, element, null);
   }
 
   public static void addCalcFields(JsonObject query, DataSource ds) {
