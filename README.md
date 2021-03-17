@@ -28,6 +28,10 @@ Java library for CronApp's users
 </dependencies>
 ```
 
+## Parâmetros
+cronapp.request.maxFileSize
+cronapp.request.maxRequestSize
+
 ## License
 
 This library is licensed under MIT. Full license text is available in [LICENSE](LICENSE).
