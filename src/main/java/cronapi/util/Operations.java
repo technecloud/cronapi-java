@@ -313,8 +313,16 @@ public class Operations {
     Var[] callParams = params;
 
     boolean namedParams = false;
+    boolean hasIds = params.length > 0;
 
-    if (params.length > 0 && methodToCall.getParameterCount() > 0 && !StringUtils.isEmpty(params[0].getId())) {
+    for (Var param: params) {
+      if (StringUtils.isEmpty(param.getId())) {
+        hasIds = false;
+        break;
+      }
+    }
+
+    if (params.length > 0 && methodToCall.getParameterCount() > 0 && hasIds) {
       if (ReflectionUtils.getAnnotation(methodToCall.getParameters()[0], "cronapi.ParamMetaData") != null) {
         namedParams = true;
         callParams = new Var[methodToCall.getParameterCount()];
