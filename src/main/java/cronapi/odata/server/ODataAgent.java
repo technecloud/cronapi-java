@@ -452,6 +452,8 @@ public class ODataAgent {
     System.out.println("Waiting for commands...");
     while (true) {
       String input = scanner.next();
+      QueryManager.JSON_CACHE.set(null);
+      QueryManager.JSON_CACHE.remove();
       if (input.startsWith("error")) {
         System.setErr(errStream);
         ODataRequestHandler.PRINT_EXCEPTION = true;
