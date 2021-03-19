@@ -31,6 +31,7 @@ public class ImportBlocklyREST {
   private static volatile boolean shouldInitializeImports = true;
   private static List<String> localesKeys = new ArrayList<>();
   private static JsonObject localesRef = new JsonObject();
+  private static boolean hasPtBr = false;
 
   private final Logger logger;
 
@@ -56,11 +57,17 @@ public class ImportBlocklyREST {
       return;
     }
 
+    hasPtBr = false;
+
     try (Stream<Path> stream = Files.walk(i18nPath)) {
       stream
           .map(path -> path.getFileName().toString())
           .filter(ImportBlocklyREST::isValidLocalePath)
           .forEach(ImportBlocklyREST::addLocale);
+    }
+
+    if (hasPtBr) {
+      localesRef.addProperty("*", "pt_br");
     }
   }
 
@@ -78,7 +85,7 @@ public class ImportBlocklyREST {
       localesRef.addProperty("*", localeName);
     }
     if (localeName.equals("pt_br")) {
-      localesRef.addProperty("*", localeName);
+      hasPtBr = true;
     }
   }
 
@@ -150,11 +157,11 @@ public class ImportBlocklyREST {
 
           try {
             fill(folderPath, fillImports);
+            fillLanguages(folderPath);
             if (!Operations.IS_DEBUG) {
               imports = fillImports;
               shouldInitializeImports = false;
             } else {
-              fillLanguages(folderPath);
               write(out, fillImports);
             }
           } finally {
