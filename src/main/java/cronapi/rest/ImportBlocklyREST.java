@@ -76,10 +76,9 @@ public class ImportBlocklyREST {
     if (!localesKeys.contains(localeName)) {
       localesKeys.add(localeName);
     }
+
     localesRef.addProperty(localeName.substring(0, 2) + "*", localeName);
-    if (localesRef.get("*") == null) {
-      localesRef.addProperty("*", localeName);
-    }
+
     if (localeName.equals("pt_br")) {
       hasPtBr = true;
     }
