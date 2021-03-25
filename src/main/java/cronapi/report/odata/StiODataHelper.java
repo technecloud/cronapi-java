@@ -1,5 +1,7 @@
 package cronapi.report.odata;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.stimulsoft.base.exception.StiException;
 import com.stimulsoft.report.dictionary.data.DataRow;
 import com.stimulsoft.report.dictionary.data.DataTable;
@@ -130,6 +132,21 @@ class StiODataHelper {
         .findFirst().orElse(null);
   }
 
+  private String normalizeQueryString(String queryString) {
+    String qs = queryString;
+    try {
+      JsonObject jsonObject = new JsonParser().parse(queryString).getAsJsonObject();
+      List<String> params = new ArrayList<>(); // caso no futuro tenha mais parametros para passar.
+      if (jsonObject.has("maxRecord")) {
+        params.add("$top=".concat(jsonObject.get("maxRecord").getAsString()));
+      }
+      qs = String.join("&", params);
+    } catch (Exception err) {
+      // abafa , pois nao está vindo em uma formato JSON
+    }
+    return qs;
+  }
+
   private String downloadODataString(String path) throws StiException {
     try {
       String queryString = null;
@@ -138,6 +155,8 @@ class StiODataHelper {
         String[] urlParts = path.split("\\?");
         queryString = urlParts[1];
         path = urlParts[0];
+
+        queryString = normalizeQueryString(queryString); // tratar formato dos parametros
 
         RestClient.getRestClient().setParameters(queryString);
       } else {
