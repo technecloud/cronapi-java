@@ -275,4 +275,13 @@ public class AppConfig {
     }
     return "";
   }
+
+  public static String xFrameOptions() {
+    JsonObject config = loadJSON();
+    if (!isNull(config.get("xframeOptions"))) {
+      return config.get("xframeOptions").getAsString();
+    }
+
+    return "SameOrigin";
+  }
 }
