@@ -38,7 +38,6 @@ import org.eclipse.persistence.config.PersistenceUnitProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.xml.sax.SAXException;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -483,7 +482,7 @@ public class ReportService {
         exportStimulsoftReportToFile(stiReport, file, parameters, type, isLegacyReport);
       }
 
-    } catch (IOException | SAXException | StiDeserializationException e) {
+    } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
