@@ -6,15 +6,16 @@ import org.eclipse.persistence.jpa.Archive;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 
 import javax.persistence.Persistence;
 import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
 import javax.servlet.ServletRegistration;
 import java.util.List;
 import java.util.Set;
 
 @Configuration
+@DependsOn("cronappEntityManagerFactory")
 @ComponentScan(basePackages = {
     "cronapi.odata.server",
 })
